@@ -7,7 +7,7 @@
 WITH this_week AS (
     SELECT
         normalized_query_hash,
-        formatQuery(any(query))            AS example_query,
+        formatQuery(any(query))            AS query_text,
         if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
         toInt64(quantile(0.95)(query_duration_ms))          AS p95_ms,
         toInt64(avg(read_bytes))                          AS avg_bytes
@@ -41,7 +41,7 @@ SELECT
     formatReadableSize(lw.avg_bytes)                    AS prev_avg_read,
     formatReadableSize(tw.avg_bytes)                    AS curr_avg_read,
     round((tw.avg_bytes - lw.avg_bytes) / lw.avg_bytes * 100, 2) AS bytes_change_pct,
-    tw.example_query
+    tw.query_text
 FROM this_week AS tw
 INNER JOIN last_week AS lw ON tw.normalized_query_hash = lw.normalized_query_hash
 WHERE tw.p95_ms > lw.p95_ms * (1 + {regression_threshold_pct} / 100.0)

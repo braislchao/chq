@@ -11,6 +11,7 @@ CATEGORY_TITLES = {
     "anomalies": "Anomalies — Week-over-Week Changes",
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
+    "cluster_health": "Cluster Health — Merges, Parts & Ingestion",
 }
 
 
@@ -45,7 +46,7 @@ def output_html(results: list, config) -> None:
             query_col_idx = None
             checks_html.append('<thead><tr>')
             for i, col in enumerate(qr.columns):
-                if col == "example_query":
+                if col == "query_text":
                     query_col_idx = i
                 checks_html.append(f'<th>{_esc(col)}</th>')
             checks_html.append('</tr></thead>')

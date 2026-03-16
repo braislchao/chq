@@ -9,7 +9,7 @@ SELECT
     count()                                             AS executions,
     formatReadableSize(sum(read_bytes))                 AS total_read,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS example_query
+    formatQuery(any(query))                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1

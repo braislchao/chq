@@ -1,7 +1,8 @@
 # chq
 
 Analyze `system.query_log` on any ClickHouse instance.
-Finds expensive queries, anti-patterns, week-over-week regressions, and per-user cost attribution.
+Finds expensive queries, anti-patterns, week-over-week regressions, per-user cost attribution,
+and cluster health diagnostics (merge pressure, partition fragmentation, insert patterns).
 
 ## Install
 
@@ -40,7 +41,8 @@ List everything available:
 
 ## Checks
 
-13 checks in 4 categories, all driven by plain SQL against `system.query_log`.
+17 checks in 5 categories, driven by SQL against `system.query_log`,
+`system.part_log`, `system.parts`, and other system tables.
 
 | Category | Check | Description |
 |---|---|---|
@@ -57,6 +59,10 @@ List everything available:
 | anti_patterns | `unbounded_results` | Large result sets without LIMIT |
 | anti_patterns | `repeated_identical` | Same query >100 times/hour |
 | anti_patterns | `small_insert_batches` | INSERT with <1000 rows per batch |
+| cluster_health | `insert_part_fragmentation` | Tables creating too many small parts from inserts |
+| cluster_health | `insert_duration_by_engine` | Insert latency histogram by storage engine |
+| cluster_health | `merge_pressure` | Merge duration, load, and pressure per table |
+| cluster_health | `partition_health` | Partition fragmentation, merge backlog, oversized parts |
 
 ## Configuration
 
@@ -115,11 +121,22 @@ with the same schema using `--table`:
 
 ## Permissions
 
-Read-only. The ClickHouse user only needs:
+Read-only. The ClickHouse user needs:
 
     GRANT SELECT ON system.query_log TO your_user;
+    GRANT SELECT ON system.part_log TO your_user;
+    GRANT SELECT ON system.parts TO your_user;
+    GRANT SELECT ON system.merges TO your_user;
+    GRANT SELECT ON system.tables TO your_user;
+    GRANT SELECT ON system.asynchronous_metrics TO your_user;
+    GRANT SELECT ON system.settings TO your_user;
 
-Or if using a custom table:
+The `cluster_health` checks query `system.part_log`, `system.parts`,
+`system.merges`, `system.tables`, `system.asynchronous_metrics`, and
+`system.settings`. If these tables are not accessible, those checks will
+be skipped with a warning. All other checks only need `system.query_log`.
+
+If using a custom table:
 
     GRANT SELECT ON query_log_archive TO your_user;
 

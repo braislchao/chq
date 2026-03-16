@@ -9,7 +9,7 @@ SELECT
     count()                                             AS executions,
     formatReadableSize(max(memory_usage))               AS peak_memory,
     formatReadableSize(quantile(0.95)(memory_usage))    AS p95_memory,
-    formatQuery(any(query))                             AS example_query
+    formatQuery(any(query))                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1

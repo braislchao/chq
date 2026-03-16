@@ -2,7 +2,7 @@
   {
     "category": "top_n",
     "name": "by_memory",
-    "columns": ["normalized_query_hash", "example_query", "executions", "peak_memory", "p95_memory", "peak_memory_readable", "primary_user"],
+    "columns": ["normalized_query_hash", "query_text", "executions", "peak_memory", "p95_memory", "peak_memory_readable", "primary_user"],
     "rows": [
       ["abc123", "SELECT count() FROM events WHERE date = '2026-03-10' GROUP BY user_id", 1283, 4509715660, 4200000000, "4.20 GiB", "etl_pipeline"],
       ["def456", "SELECT * FROM large_table WHERE status = 'active'", 42, 2147483648, 2000000000, "2.00 GiB", "api_service"]
@@ -11,7 +11,7 @@
   {
     "category": "top_n",
     "name": "by_read_bytes",
-    "columns": ["normalized_query_hash", "example_query", "executions", "total_read_bytes", "avg_read_bytes", "total_read_readable", "primary_user"],
+    "columns": ["normalized_query_hash", "query_text", "executions", "total_read_bytes", "avg_read_bytes", "total_read_readable", "primary_user"],
     "rows": [
       ["abc123", "SELECT count() FROM events WHERE date = '2026-03-10' GROUP BY user_id", 1283, 15621347328000, 12176265000, "14.21 TiB", "etl_pipeline"]
     ]
@@ -19,7 +19,7 @@
   {
     "category": "anomalies",
     "name": "wow_duration_regressions",
-    "columns": ["normalized_query_hash", "example_query", "primary_user", "prev_p95_ms", "curr_p95_ms", "duration_change_pct", "prev_avg_bytes", "curr_avg_bytes", "bytes_change_pct"],
+    "columns": ["normalized_query_hash", "query_text", "primary_user", "prev_p95_ms", "curr_p95_ms", "duration_change_pct", "prev_avg_bytes", "curr_avg_bytes", "bytes_change_pct"],
     "rows": [
       ["ghi789", "SELECT uniq(user_id) FROM orders WHERE created_at > now() - INTERVAL 1 DAY", "api_service", 1200, 3800, 216.67, 500000000, 1200000000, 140.0]
     ]
@@ -27,7 +27,7 @@
   {
     "category": "anomalies",
     "name": "new_expensive_patterns",
-    "columns": ["normalized_query_hash", "example_query", "executions", "avg_duration_ms", "avg_read_bytes", "avg_read_readable", "primary_user"],
+    "columns": ["normalized_query_hash", "query_text", "executions", "avg_duration_ms", "avg_read_bytes", "avg_read_readable", "primary_user"],
     "rows": []
   },
   {
@@ -42,7 +42,7 @@
   {
     "category": "anti_patterns",
     "name": "full_scans",
-    "columns": ["normalized_query_hash", "example_query", "executions", "avg_read_rows", "avg_result_rows", "scan_ratio", "avg_read_readable", "primary_user"],
+    "columns": ["normalized_query_hash", "query_text", "executions", "avg_read_rows", "avg_result_rows", "scan_ratio", "avg_read_readable", "primary_user"],
     "rows": [
       ["jkl012", "SELECT * FROM users WHERE email LIKE '%@example.com'", 8201, 50000000, 15, 3333333.33, "2.50 GiB", "dashboard_svc"]
     ]
@@ -50,9 +50,44 @@
   {
     "category": "anti_patterns",
     "name": "repeated_identical",
-    "columns": ["normalized_query_hash", "example_query", "total_executions", "avg_per_hour", "avg_read_bytes", "avg_read_readable", "primary_user"],
+    "columns": ["normalized_query_hash", "query_text", "total_executions", "avg_per_hour", "avg_read_bytes", "avg_read_readable", "primary_user"],
     "rows": [
       ["mno345", "SELECT status FROM health_check", 57120, 340, 1024, "1.00 KiB", "monitoring"]
+    ]
+  },
+  {
+    "category": "cluster_health",
+    "name": "insert_part_fragmentation",
+    "columns": ["database", "table", "added_parts", "total_rows", "batch_size_class", "avg_interval_sec", "insert_frequency_class", "avg_rows_per_part", "p50_rows_per_part", "small_parts_pct"],
+    "rows": [
+      ["default", "events", 48200, 2410000, "🟧 SMALL", 1.8, "<10s", 50, 12, 97.5],
+      ["analytics", "page_views", 8640, 86400000, "🟩 NORMAL", 10.0, "<1min", 10000, 9500, 2.1]
+    ]
+  },
+  {
+    "category": "cluster_health",
+    "name": "insert_duration_by_engine",
+    "columns": ["engine", "duration_bucket", "inserts", "pct", "avg_rows", "avg_query_s", "bar_chart"],
+    "rows": [
+      ["MergeTree", "<0.1s", 14200, 62.3, 500.0, 0.042, "████████████████████████████████████████████████████████████"],
+      ["MergeTree", "<0.5s", 5100, 22.4, 15000.0, 0.312, "█████████████████████"]
+    ]
+  },
+  {
+    "category": "cluster_health",
+    "name": "merge_pressure",
+    "columns": ["database", "table", "p90_merge_duration_s", "avg_merge_duration_s", "p90_merge_duration_human", "merge_duration_class", "total_merges", "merge_load_class", "merge_pressure_class", "total_parts_merged", "avg_parts_per_merge", "total_rows_merged", "avg_rows_per_merge", "total_merge_wall_time_h", "avg_merge_interval_sec", "merge_frequency_class", "avg_merge_duration_human", "first_merge_time", "last_merge_time"],
+    "rows": [
+      ["default", "events", 45.2, 12.8, "45 seconds", "🟡 MODERATE", 18500, "🟠 HEAVY LOAD", "🟡 SLOW", 92500, 5.0, 1850000000, 100000, 65.8, 4.7, "<10s", "12 seconds", "2026-03-15 00:00:12", "2026-03-15 23:59:48"]
+    ]
+  },
+  {
+    "category": "cluster_health",
+    "name": "partition_health",
+    "columns": ["database", "table", "partition", "partition_status", "total_rows_m", "size_gb", "active_parts", "avg_part_size_mb", "parts_per_gb", "active_merges", "node_ram_gb", "oversized_threshold_mb"],
+    "rows": [
+      ["default", "events", "202603", "🔴 Merge backlog (too many small parts, no merges)", 125.5, 42.3, 8400, 5.16, 199, 0, 128.0, 2048],
+      ["analytics", "page_views", "202603", "🟢 Healthy / Efficient batching", 89.2, 28.1, 12, 2400.0, 0, 2, 128.0, 2048]
     ]
   }
 ]

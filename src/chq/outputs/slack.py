@@ -15,6 +15,7 @@ CATEGORY_EMOJI = {
     "anomalies": ":chart_with_upwards_trend:",
     "cost_attribution": ":bar_chart:",
     "anti_patterns": ":warning:",
+    "cluster_health": ":gear:",
 }
 
 CATEGORY_TITLES = {
@@ -22,6 +23,7 @@ CATEGORY_TITLES = {
     "anomalies": "Anomalies \u2014 Week-over-Week Changes",
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
+    "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
 }
 
 MAX_BLOCKS_PER_MESSAGE = 50
@@ -56,7 +58,7 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
     readable one-liner per result row.
     """
     parts: list[str] = []
-    query = _col_value(row, columns, "example_query")
+    query = _col_value(row, columns, "query_text")
     if query:
         parts.append(f"`{_truncate(query, 100)}`")
 
@@ -105,6 +107,30 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         executions = _col_value(row, columns, "executions")
         if executions and not any("Executions" in p for p in parts):
             parts.append(f"*Runs:* {executions}")
+
+    elif category == "cluster_health":
+        # Show database.table identification
+        db = _col_value(row, columns, "database")
+        tbl = _col_value(row, columns, "table")
+        if db and tbl:
+            parts.append(f"`{db}.{tbl}`")
+        # Show the status/class column (varies by check)
+        for col in ("batch_size_class", "merge_pressure_class",
+                     "merge_duration_class", "partition_status", "engine"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*{val}*")
+                break
+        # Show key metrics
+        for col in ("added_parts", "total_merges", "active_parts",
+                     "inserts", "small_parts_pct", "avg_rows_per_part",
+                     "p90_merge_duration_s", "avg_part_size_mb"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                label = col.replace("_", " ").title()
+                parts.append(f"*{label}:* {val}")
+                if len(parts) >= 5:
+                    break
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":

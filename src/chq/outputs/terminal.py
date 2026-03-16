@@ -16,6 +16,7 @@ CATEGORY_TITLES = {
     "anomalies": "Anomalies \u2014 Week-over-Week Changes",
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
+    "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
 }
 
 MAX_CELL_WIDTH = 80

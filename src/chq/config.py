@@ -80,6 +80,10 @@ CHECKS: dict[tuple[str, str], str] = {
     ("anti_patterns", "unbounded_results"): "Queries returning large result sets without LIMIT",
     ("anti_patterns", "repeated_identical"): "Query patterns running excessively often (missing cache)",
     ("anti_patterns", "small_insert_batches"): "INSERT queries with very small batch sizes",
+    ("cluster_health", "insert_part_fragmentation"): "Tables with excessive small part creation from inserts",
+    ("cluster_health", "insert_duration_by_engine"): "Insert latency histogram bucketed by storage engine",
+    ("cluster_health", "merge_pressure"): "Merge duration, load, and pressure classification per table",
+    ("cluster_health", "partition_health"): "Partition-level fragmentation, merge backlog, and oversized parts",
 }
 
 

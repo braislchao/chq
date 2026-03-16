@@ -9,7 +9,7 @@ SELECT
     toInt64(quantile(0.50)(query_duration_ms))            AS p50_ms,
     toInt64(quantile(0.95)(query_duration_ms))            AS p95_ms,
     max(query_duration_ms)                              AS max_ms,
-    formatQuery(any(query))                             AS example_query
+    formatQuery(any(query))                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1

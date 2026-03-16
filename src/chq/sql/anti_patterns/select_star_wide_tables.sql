@@ -8,7 +8,7 @@ SELECT
     if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
     count()                                             AS executions,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS example_query
+    formatQuery(any(query))                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
