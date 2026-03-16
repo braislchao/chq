@@ -26,6 +26,7 @@ Output goes to the terminal by default. Other formats:
     chq --format json                # stdout
     chq --format json -o report.json
     chq --format csv -o report.csv
+    chq --format html -o report.html   # self-contained, sortable tables
     chq --format slack --slack-webhook https://hooks.slack.com/services/...
 
 Run a subset of checks:
@@ -134,7 +135,7 @@ Or if using a custom table:
 Each check is a standalone `.sql` file under `src/chq/sql/`.
 At runtime, `{parameter}` placeholders are substituted with your thresholds,
 then executed via `clickhouse-connect`. Results are piped to the selected
-output formatter (terminal, slack, json, csv).
+output formatter (terminal, slack, json, csv, html).
 
 All queries filter on `event_date` (partition key) and `is_initial_query = 1`
 to keep scans efficient and avoid double-counting distributed sub-queries.
