@@ -72,7 +72,7 @@ def output_html(results: list, config) -> None:
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>chq report — {_esc(date_range)}</title>
+<title>chq report</title>
 <style>
   * {{ box-sizing: border-box; }}
   body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
