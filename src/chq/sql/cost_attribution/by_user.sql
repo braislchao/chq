@@ -17,5 +17,6 @@ FROM system.query_log
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type IN ('QueryFinish', 'ExceptionWhileProcessing')
+  AND query NOT LIKE '%system.query_log%'
 GROUP BY user
 ORDER BY total_read_bytes DESC

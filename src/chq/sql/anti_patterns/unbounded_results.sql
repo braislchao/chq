@@ -18,7 +18,8 @@ WHERE event_date >= today() - {lookback_days}
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
   AND result_rows > {max_result_rows}
-  AND positionCaseInsensitive(query, 'LIMIT') = 0
+  AND NOT match(query, '(?i)\\bLIMIT\\s+\\d+')
+  AND query NOT LIKE '%system.query_log%'
 GROUP BY normalized_query_hash
 ORDER BY avg_result_rows DESC
 LIMIT {top_n}

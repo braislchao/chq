@@ -16,6 +16,8 @@ FROM system.query_log
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
+  AND query_kind = 'Select'
+  AND query NOT LIKE '%system.query_log%'
 GROUP BY normalized_query_hash
 ORDER BY peak_memory DESC
 LIMIT {top_n}

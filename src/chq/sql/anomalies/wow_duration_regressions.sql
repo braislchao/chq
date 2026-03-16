@@ -12,9 +12,10 @@ WITH this_week AS (
         quantile(0.95)(query_duration_ms)               AS p95_ms,
         avg(read_bytes)                                 AS avg_bytes
     FROM system.query_log
-    WHERE event_date >= today() - 7
+    WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query NOT LIKE '%system.query_log%'
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}
 ),
@@ -24,10 +25,11 @@ last_week AS (
         quantile(0.95)(query_duration_ms)               AS p95_ms,
         avg(read_bytes)                                 AS avg_bytes
     FROM system.query_log
-    WHERE event_date >= today() - 14
-      AND event_date < today() - 7
+    WHERE event_date >= today() - {lookback_days} * 2
+      AND event_date < today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query NOT LIKE '%system.query_log%'
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}
 )
@@ -43,6 +45,6 @@ SELECT
     round((tw.avg_bytes - lw.avg_bytes) / lw.avg_bytes * 100, 2) AS bytes_change_pct
 FROM this_week AS tw
 INNER JOIN last_week AS lw ON tw.normalized_query_hash = lw.normalized_query_hash
-WHERE tw.p95_ms > lw.p95_ms * (1 + {regression_threshold_pct} / 100)
+WHERE tw.p95_ms > lw.p95_ms * (1 + {regression_threshold_pct} / 100.0)
 ORDER BY duration_change_pct DESC
 LIMIT {top_n}

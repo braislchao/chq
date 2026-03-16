@@ -15,19 +15,21 @@ WITH this_week AS (
         formatReadableSize(avg(read_bytes))             AS avg_read_readable,
         topK(1)(user)[1]                                AS primary_user
     FROM system.query_log
-    WHERE event_date >= today() - 7
+    WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query NOT LIKE '%system.query_log%'
     GROUP BY normalized_query_hash
     HAVING avg_read_bytes > 100000000 OR avg_duration_ms > 10000
 ),
 baseline AS (
     SELECT DISTINCT normalized_query_hash
     FROM system.query_log
-    WHERE event_date >= today() - 28
-      AND event_date < today() - 7
+    WHERE event_date >= today() - {lookback_days} * 4
+      AND event_date < today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query NOT LIKE '%system.query_log%'
 )
 SELECT
     tw.normalized_query_hash,

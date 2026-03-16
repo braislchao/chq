@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.resources
 import logging
+import re
 from collections import namedtuple
 
 import clickhouse_connect
@@ -42,7 +43,7 @@ def load_queries(config: Config) -> list[SQLQuery]:
 
             name = sql_file.name.removesuffix(".sql")
             raw_sql = sql_file.read_text(encoding="utf-8")
-            rendered_sql = raw_sql.format_map(params)
+            rendered_sql = _substitute(raw_sql, params)
             queries.append(SQLQuery(category=category, name=name, sql=rendered_sql))
 
     return queries
@@ -85,6 +86,22 @@ def execute_queries(config: Config) -> list[QueryResult]:
         client.close()
 
     return results
+
+
+def _substitute(sql: str, params: dict) -> str:
+    """Replace {param} placeholders with values from *params*.
+
+    Only known parameter names are replaced. Literal braces (e.g., in
+    JSONExtract or Map access like ``col['key']``) are left untouched,
+    unlike str.format_map which would raise on them.
+    """
+    def _replace(match: re.Match) -> str:
+        key = match.group(1)
+        if key in params:
+            return str(params[key])
+        return match.group(0)  # leave unknown placeholders as-is
+
+    return re.sub(r"\{(\w+)\}", _replace, sql)
 
 
 def _current_exc_oneline() -> str:
