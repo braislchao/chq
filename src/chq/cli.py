@@ -28,10 +28,11 @@ from chq.runner import run
 @click.option("--lookback-days", envvar="CHQ_LOOKBACK_DAYS", default=None, type=int, help="Analysis window in days (default: 7).")
 @click.option("--top-n", envvar="CHQ_TOP_N", default=None, type=int, help="Number of results per check (default: 10).")
 @click.option("--list-checks", is_flag=True, help="List available checks and exit.")
+@click.option("--show-sql", is_flag=True, help="Print the SQL for each check instead of running it.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
 def main(
     host, port, user, password, secure, table, config_path, fmt, slack_webhook,
-    output_path, only, lookback_days, top_n, list_checks, verbose,
+    output_path, only, lookback_days, top_n, list_checks, show_sql, verbose,
 ):
     """chq — ClickHouse query performance analyzer.
 
@@ -68,11 +69,23 @@ def main(
 
     config = load_config(config_path=config_path, **cli_overrides)
 
+    if show_sql:
+        from chq.executor import load_queries
+        for q in load_queries(config):
+            click.echo(f"-- {q.category}/{q.name}")
+            click.echo(q.sql)
+            click.echo()
+        return
+
     if not config.host:
         click.echo("Error: ClickHouse host is required. Use --host, CHQ_HOST env var, or a config file.", err=True)
         sys.exit(1)
 
-    run(config)
+    try:
+        run(config)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 def _print_checks():
