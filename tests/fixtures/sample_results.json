@@ -1,0 +1,58 @@
+[
+  {
+    "category": "top_n",
+    "name": "by_memory",
+    "columns": ["normalized_query_hash", "example_query", "executions", "peak_memory", "p95_memory", "peak_memory_readable", "primary_user"],
+    "rows": [
+      ["abc123", "SELECT count() FROM events WHERE date = '2026-03-10' GROUP BY user_id", 1283, 4509715660, 4200000000, "4.20 GiB", "etl_pipeline"],
+      ["def456", "SELECT * FROM large_table WHERE status = 'active'", 42, 2147483648, 2000000000, "2.00 GiB", "api_service"]
+    ]
+  },
+  {
+    "category": "top_n",
+    "name": "by_read_bytes",
+    "columns": ["normalized_query_hash", "example_query", "executions", "total_read_bytes", "avg_read_bytes", "total_read_readable", "primary_user"],
+    "rows": [
+      ["abc123", "SELECT count() FROM events WHERE date = '2026-03-10' GROUP BY user_id", 1283, 15621347328000, 12176265000, "14.21 TiB", "etl_pipeline"]
+    ]
+  },
+  {
+    "category": "anomalies",
+    "name": "wow_duration_regressions",
+    "columns": ["normalized_query_hash", "example_query", "primary_user", "prev_p95_ms", "curr_p95_ms", "duration_change_pct", "prev_avg_bytes", "curr_avg_bytes", "bytes_change_pct"],
+    "rows": [
+      ["ghi789", "SELECT uniq(user_id) FROM orders WHERE created_at > now() - INTERVAL 1 DAY", "api_service", 1200, 3800, 216.67, 500000000, 1200000000, 140.0]
+    ]
+  },
+  {
+    "category": "anomalies",
+    "name": "new_expensive_patterns",
+    "columns": ["normalized_query_hash", "example_query", "executions", "avg_duration_ms", "avg_read_bytes", "avg_read_readable", "primary_user"],
+    "rows": []
+  },
+  {
+    "category": "cost_attribution",
+    "name": "by_user",
+    "columns": ["user", "total_queries", "total_read_bytes", "total_read_readable", "total_duration_ms", "total_hours", "errors", "error_rate_pct"],
+    "rows": [
+      ["etl_pipeline", 89412, 15621347328000, "14.21 TiB", 173880000, 48.3, 179, 0.2],
+      ["api_service", 241090, 8905748275200, "8.10 TiB", 43560000, 12.1, 2652, 1.1]
+    ]
+  },
+  {
+    "category": "anti_patterns",
+    "name": "full_scans",
+    "columns": ["normalized_query_hash", "example_query", "executions", "avg_read_rows", "avg_result_rows", "scan_ratio", "avg_read_readable", "primary_user"],
+    "rows": [
+      ["jkl012", "SELECT * FROM users WHERE email LIKE '%@example.com'", 8201, 50000000, 15, 3333333.33, "2.50 GiB", "dashboard_svc"]
+    ]
+  },
+  {
+    "category": "anti_patterns",
+    "name": "repeated_identical",
+    "columns": ["normalized_query_hash", "example_query", "total_executions", "avg_per_hour", "avg_read_bytes", "avg_read_readable", "primary_user"],
+    "rows": [
+      ["mno345", "SELECT status FROM health_check", 57120, 340, 1024, "1.00 KiB", "monitoring"]
+    ]
+  }
+]

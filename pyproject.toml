@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chq"
+version = "0.1.0"
+description = "ClickHouse query performance analyzer — find expensive queries and anti-patterns"
+requires-python = ">=3.10"
+dependencies = [
+    "clickhouse-connect>=0.7.0",
+    "click>=8.0",
+    "rich>=13.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+chq = "chq.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+chq = ["sql/**/*.sql"]

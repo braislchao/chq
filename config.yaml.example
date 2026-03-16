@@ -1,0 +1,29 @@
+# chq configuration file
+# Copy to config.yaml and fill in your values.
+# CLI flags and CHQ_* environment variables override these settings.
+
+host: "abc123.clickhouse.cloud"
+port: 8443
+user: "default"
+password: "CHANGE_ME"
+secure: true
+
+# Output: terminal, slack, json, csv
+format: "terminal"
+slack_webhook: ""
+
+# Query thresholds
+lookback_days: 7
+top_n: 10
+regression_threshold_pct: 50
+min_executions: 10
+scan_ratio_threshold: 1000
+max_result_rows: 100000
+repeat_threshold: 100
+min_batch_size: 1000
+min_parts_threshold: 20
+
+# Uncomment to run specific categories only:
+# only_categories:
+#   - top_n
+#   - anti_patterns

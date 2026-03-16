@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+config.yaml
+.aws-sam/
+*.egg
+.pytest_cache/
+.claude/

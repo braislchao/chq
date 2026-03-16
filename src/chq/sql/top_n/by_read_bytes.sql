@@ -1,0 +1,21 @@
+-- Check: top_n/by_read_bytes
+-- Detects: Queries that scan the most data in aggregate.
+-- Why it matters: Total bytes read is the primary driver of I/O pressure and
+--   ClickHouse Cloud compute cost. Reducing top scanners yields the biggest
+--   resource savings.
+
+SELECT
+    normalized_query_hash,
+    substring(any(query), 1, 200)                      AS example_query,
+    count()                                             AS executions,
+    sum(read_bytes)                                     AS total_read_bytes,
+    avg(read_bytes)                                     AS avg_read_bytes,
+    formatReadableSize(sum(read_bytes))                 AS total_read_readable,
+    topK(1)(user)[1]                                    AS primary_user
+FROM system.query_log
+WHERE event_date >= today() - {lookback_days}
+  AND is_initial_query = 1
+  AND type = 'QueryFinish'
+GROUP BY normalized_query_hash
+ORDER BY total_read_bytes DESC
+LIMIT {top_n}
