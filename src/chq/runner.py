@@ -12,6 +12,7 @@ OUTPUT_DISPATCHERS = {
     "slack": "chq.outputs.slack",
     "json": "chq.outputs.json_out",
     "csv": "chq.outputs.csv_out",
+    "html": "chq.outputs.html",
 }
 
 
@@ -49,3 +50,5 @@ def run(config: Config) -> None:
         mod.output_json(results, config)
     elif fmt == "csv":
         mod.output_csv(results, config)
+    elif fmt == "html":
+        mod.output_html(results, config)

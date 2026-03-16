@@ -20,7 +20,7 @@ from chq.runner import run
 @click.option("--config", "config_path", default=None, type=click.Path(exists=True), help="Path to YAML config file.")
 @click.option(
     "--format", "fmt", envvar="CHQ_FORMAT", default=None,
-    type=click.Choice(["terminal", "slack", "json", "csv"]),
+    type=click.Choice(["terminal", "slack", "json", "csv", "html"]),
     help="Output format (default: terminal).",
 )
 @click.option("--slack-webhook", envvar="CHQ_SLACK_WEBHOOK", default=None, help="Slack webhook URL.")
