@@ -41,30 +41,21 @@ List everything available:
 
 13 checks in 4 categories, all driven by plain SQL against `system.query_log`.
 
-**top_n** — most expensive query patterns
-
-    by_memory               peak memory usage
-    by_read_bytes            total data scanned
-    by_duration              p95 execution time
-    by_weighted_cost         frequency * avg bytes read
-
-**anomalies** — week-over-week changes
-
-    wow_duration_regressions   p95 duration regressed vs. last week
-    new_expensive_patterns     first seen this week, already expensive
-
-**cost_attribution**
-
-    by_user                  bytes read, compute hours, error rate per user
-
-**anti_patterns**
-
-    full_scans               read/result row ratio > threshold
-    select_star_wide_tables  SELECT * usage
-    missing_partition_filter too many parts scanned
-    unbounded_results        large result sets without LIMIT
-    repeated_identical       same query >100 times/hour
-    small_insert_batches     INSERT with <1000 rows per batch
+| Category | Check | Description |
+|---|---|---|
+| top_n | `by_memory` | Peak memory usage |
+| top_n | `by_read_bytes` | Total data scanned |
+| top_n | `by_duration` | p95 execution time |
+| top_n | `by_weighted_cost` | Frequency * avg bytes read |
+| anomalies | `wow_duration_regressions` | p95 duration regressed vs. last week |
+| anomalies | `new_expensive_patterns` | First seen this week, already expensive |
+| cost_attribution | `by_user` | Bytes read, compute hours, error rate per user |
+| anti_patterns | `full_scans` | Read/result row ratio above threshold |
+| anti_patterns | `select_star_wide_tables` | SELECT * usage |
+| anti_patterns | `missing_partition_filter` | Too many parts scanned |
+| anti_patterns | `unbounded_results` | Large result sets without LIMIT |
+| anti_patterns | `repeated_identical` | Same query >100 times/hour |
+| anti_patterns | `small_insert_batches` | INSERT with <1000 rows per batch |
 
 ## Configuration
 
