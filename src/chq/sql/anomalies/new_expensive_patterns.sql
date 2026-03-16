@@ -8,12 +8,12 @@
 WITH this_week AS (
     SELECT
         normalized_query_hash,
-        substring(any(query), 1, 200)                  AS example_query,
+        formatQuery(any(query))            AS example_query,
         count()                                         AS executions,
-        avg(query_duration_ms)                          AS avg_duration_ms,
-        avg(read_bytes)                                 AS avg_read_bytes,
+        toInt64(avg(query_duration_ms))                     AS avg_duration_ms,
+        toInt64(avg(read_bytes))                          AS avg_read_bytes,
         formatReadableSize(avg(read_bytes))             AS avg_read_readable,
-        topK(1)(user)[1]                                AS primary_user
+        if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user
     FROM {query_log_table}
     WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
@@ -32,13 +32,11 @@ baseline AS (
       AND query NOT LIKE '%system.query_log%'
 )
 SELECT
-    tw.normalized_query_hash,
-    tw.example_query,
+    tw.primary_user,
     tw.executions,
     tw.avg_duration_ms,
-    tw.avg_read_bytes,
-    tw.avg_read_readable,
-    tw.primary_user
+    tw.avg_read_readable                                AS avg_read,
+    tw.example_query
 FROM this_week AS tw
 LEFT ANTI JOIN baseline AS bl ON tw.normalized_query_hash = bl.normalized_query_hash
 ORDER BY tw.avg_read_bytes DESC

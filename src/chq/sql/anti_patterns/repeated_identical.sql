@@ -7,13 +7,11 @@
 --   significant cluster capacity.
 
 SELECT
-    normalized_query_hash,
-    substring(any(query), 1, 200)                      AS example_query,
+    if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
     count()                                             AS total_executions,
     round(count() / {lookback_days} / 24, 2)           AS avg_per_hour,
-    avg(read_bytes)                                     AS avg_read_bytes,
-    formatReadableSize(avg(read_bytes))                 AS avg_read_readable,
-    topK(1)(user)[1]                                    AS primary_user
+    formatReadableSize(avg(read_bytes))                 AS avg_read,
+    formatQuery(any(query))                             AS example_query
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1

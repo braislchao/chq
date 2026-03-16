@@ -41,18 +41,29 @@ def output_html(results: list, config) -> None:
                 checks_html.append('<p class="empty">No results</p>')
                 continue
 
-            checks_html.append('<table>')
+            checks_html.append('<div class="table-wrap"><table>')
+            query_col_idx = None
             checks_html.append('<thead><tr>')
-            for col in qr.columns:
+            for i, col in enumerate(qr.columns):
+                if col == "example_query":
+                    query_col_idx = i
                 checks_html.append(f'<th>{_esc(col)}</th>')
             checks_html.append('</tr></thead>')
             checks_html.append('<tbody>')
             for row in qr.rows:
                 checks_html.append('<tr>')
-                for val in row:
-                    checks_html.append(f'<td>{_esc(val)}</td>')
+                for i, val in enumerate(row):
+                    if i == query_col_idx:
+                        text = str(val)
+                        short = text[:80] + "..." if len(text) > 80 else text
+                        checks_html.append(
+                            f'<td class="query-cell"><details><summary>{_esc(short)}</summary>'
+                            f'<pre>{_esc(text)}</pre></details></td>'
+                        )
+                    else:
+                        checks_html.append(f'<td>{_esc(val)}</td>')
                 checks_html.append('</tr>')
-            checks_html.append('</tbody></table>')
+            checks_html.append('</tbody></table></div>')
 
     body = "\n".join(checks_html)
 
@@ -71,9 +82,18 @@ def output_html(results: list, config) -> None:
   h3 {{ color: #374151; margin-top: 24px; }}
   .meta {{ color: #6b7280; margin-bottom: 24px; }}
   .empty {{ color: #9ca3af; font-style: italic; }}
-  table {{ width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 14px; }}
-  th, td {{ text-align: left; padding: 8px 12px; border: 1px solid #e5e7eb; max-width: 400px;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+  .table-wrap {{ overflow-x: auto; margin: 12px 0 24px; }}
+  table {{ border-collapse: collapse; font-size: 14px; width: 100%; }}
+  th, td {{ text-align: left; padding: 8px 12px; border: 1px solid #e5e7eb;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }}
+  td.query-cell {{ white-space: normal; max-width: 500px; min-width: 200px; }}
+  td.query-cell details summary {{ cursor: pointer; white-space: nowrap; overflow: hidden;
+                                   text-overflow: ellipsis; display: block; }}
+  td.query-cell details[open] {{ white-space: normal; }}
+  td.query-cell details[open] summary {{ margin-bottom: 8px; white-space: nowrap; }}
+  td.query-cell pre {{ white-space: pre-wrap; word-break: break-word; font-size: 13px; margin: 0;
+                       background: #f3f4f6; padding: 8px; border-radius: 4px; max-height: 400px;
+                       overflow-y: auto; }}
   th {{ background: #f3f4f6; position: sticky; top: 0; cursor: pointer; user-select: none; }}
   th:hover {{ background: #e5e7eb; }}
   tr:hover td {{ background: #f9fafb; }}

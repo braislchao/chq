@@ -6,12 +6,11 @@
 --   rows dramatically improves throughput and cluster health.
 
 SELECT
-    normalized_query_hash,
-    substring(any(query), 1, 200)                      AS example_query,
+    if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
     count()                                             AS executions,
-    avg(written_rows)                                   AS avg_written_rows,
+    toInt64(avg(written_rows))                            AS avg_written_rows,
     sum(written_rows)                                   AS total_written_rows,
-    topK(1)(user)[1]                                    AS primary_user
+    formatQuery(any(query))                             AS example_query
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1

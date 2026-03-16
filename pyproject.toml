@@ -22,6 +22,11 @@ dev = [
 [project.scripts]
 chq = "chq.cli:main"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:The 'u' type code is deprecated:DeprecationWarning",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

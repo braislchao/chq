@@ -5,11 +5,9 @@
 --   engage when the cluster is under pressure.
 
 SELECT
-    user,
+    if(user = '', '<system>', user)                     AS user,
     count()                                             AS total_queries,
-    sum(read_bytes)                                     AS total_read_bytes,
-    formatReadableSize(sum(read_bytes))                 AS total_read_readable,
-    sum(query_duration_ms)                              AS total_duration_ms,
+    formatReadableSize(sum(read_bytes))                 AS total_read,
     round(sum(query_duration_ms) / 1000 / 3600, 2)     AS total_hours,
     countIf(type = 'ExceptionWhileProcessing')          AS errors,
     round(countIf(type = 'ExceptionWhileProcessing') / count() * 100, 2) AS error_rate_pct
@@ -19,4 +17,4 @@ WHERE event_date >= today() - {lookback_days}
   AND type IN ('QueryFinish', 'ExceptionWhileProcessing')
   AND query NOT LIKE '%system.query_log%'
 GROUP BY user
-ORDER BY total_read_bytes DESC
+ORDER BY sum(read_bytes) DESC

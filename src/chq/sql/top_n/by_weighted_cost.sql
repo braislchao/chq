@@ -5,18 +5,16 @@
 --   patterns that top-by-peak rankings miss.
 
 SELECT
-    normalized_query_hash,
-    substring(any(query), 1, 200)                      AS example_query,
+    if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
     count()                                             AS executions,
-    avg(read_bytes)                                     AS avg_read_bytes,
-    count() * avg(read_bytes)                           AS weighted_cost,
-    formatReadableSize(count() * avg(read_bytes))       AS weighted_cost_readable,
-    topK(1)(user)[1]                                    AS primary_user
+    formatReadableSize(avg(read_bytes))                 AS avg_read,
+    formatReadableSize(count() * avg(read_bytes))       AS weighted_cost,
+    formatQuery(any(query))                             AS example_query
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
   AND query NOT LIKE '%system.query_log%'
 GROUP BY normalized_query_hash
-ORDER BY weighted_cost DESC
+ORDER BY count() * avg(read_bytes) DESC
 LIMIT {top_n}
