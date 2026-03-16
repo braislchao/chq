@@ -1,4 +1,4 @@
-.PHONY: install dev test dry-run run deploy
+.PHONY: install dev test dry-run run
 
 install:
 	pip install .
@@ -14,6 +14,3 @@ dry-run:
 
 run:
 	chq
-
-deploy:
-	cd deploy && sam build --use-container && sam deploy --guided

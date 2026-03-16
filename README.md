@@ -89,20 +89,6 @@ Read-only. The ClickHouse user only needs:
 
     GRANT SELECT ON system.query_log TO your_user;
 
-## Scheduled reports (Lambda)
-
-A SAM template in `deploy/` runs `chq` weekly and posts to Slack.
-
-    # store secrets
-    aws ssm put-parameter --name /chq/clickhouse-host     --value "..." --type String
-    aws ssm put-parameter --name /chq/clickhouse-password  --value "..." --type SecureString
-    aws ssm put-parameter --name /chq/slack-webhook        --value "..." --type SecureString
-
-    # deploy
-    cd deploy && sam build --use-container && sam deploy --guided
-
-Triggers every Monday at 09:00 UTC via EventBridge.
-
 ## Development
 
     python3 -m venv .venv
