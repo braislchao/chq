@@ -8,6 +8,10 @@ user: "default"
 password: "CHANGE_ME"
 secure: true
 
+# Source table (default: system.query_log)
+# Use a custom table if you archive query_log for persistence:
+# table: "query_log_archive"
+
 # Output: terminal, slack, json, csv
 format: "terminal"
 slack_webhook: ""

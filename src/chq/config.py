@@ -28,6 +28,9 @@ class Config:
     output_path: str | None = None  # file path for json/csv output
     slack_webhook: str = ""
 
+    # Source table (override for persistent query log archives)
+    table: str = "system.query_log"
+
     # Query parameters (substituted into SQL templates)
     lookback_days: int = 7
     top_n: int = 10
@@ -46,6 +49,7 @@ class Config:
     def sql_params(self) -> dict[str, Any]:
         """Return a dict of query parameters for SQL template substitution."""
         return {
+            "query_log_table": self.table,
             "lookback_days": self.lookback_days,
             "top_n": self.top_n,
             "regression_threshold_pct": self.regression_threshold_pct,
@@ -91,6 +95,7 @@ _ENV_MAP: dict[str, tuple[str, type]] = {
     "CHQ_SECURE": ("secure", bool),
     "CHQ_FORMAT": ("format", str),
     "CHQ_OUTPUT_PATH": ("output_path", str),
+    "CHQ_TABLE": ("table", str),
     "CHQ_SLACK_WEBHOOK": ("slack_webhook", str),
     "CHQ_LOOKBACK_DAYS": ("lookback_days", int),
     "CHQ_TOP_N": ("top_n", int),

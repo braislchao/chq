@@ -15,6 +15,7 @@ from chq.runner import run
 @click.option("--user", envvar="CHQ_USER", default=None, help="ClickHouse user (default: default).")
 @click.option("--password", envvar="CHQ_PASSWORD", default=None, help="ClickHouse password.")
 @click.option("--secure/--no-secure", envvar="CHQ_SECURE", default=None, help="Use TLS (default: true).")
+@click.option("--table", envvar="CHQ_TABLE", default=None, help="Source table (default: system.query_log).")
 @click.option("--config", "config_path", default=None, type=click.Path(exists=True), help="Path to YAML config file.")
 @click.option(
     "--format", "fmt", envvar="CHQ_FORMAT", default=None,
@@ -29,7 +30,7 @@ from chq.runner import run
 @click.option("--list-checks", is_flag=True, help="List available checks and exit.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
 def main(
-    host, port, user, password, secure, config_path, fmt, slack_webhook,
+    host, port, user, password, secure, table, config_path, fmt, slack_webhook,
     output_path, only, lookback_days, top_n, list_checks, verbose,
 ):
     """chq — ClickHouse query performance analyzer.
@@ -54,6 +55,7 @@ def main(
         "user": user,
         "password": password,
         "secure": secure,
+        "table": table,
         "format": fmt,
         "slack_webhook": slack_webhook,
         "output_path": output_path,

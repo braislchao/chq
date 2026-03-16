@@ -13,7 +13,7 @@ SELECT
     round(sum(query_duration_ms) / 1000 / 3600, 2)     AS total_hours,
     countIf(type = 'ExceptionWhileProcessing')          AS errors,
     round(countIf(type = 'ExceptionWhileProcessing') / count() * 100, 2) AS error_rate_pct
-FROM system.query_log
+FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type IN ('QueryFinish', 'ExceptionWhileProcessing')

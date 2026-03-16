@@ -83,11 +83,35 @@ Defaults are reasonable for most clusters. Override as needed:
     min_batch_size          1000       INSERT rows below this are flagged
     min_parts_threshold       20       SelectedParts above this are flagged
 
+## Custom source table
+
+By default chq reads from `system.query_log`. If your ClickHouse Cloud
+instances scale down and lose history, you can archive the log to a
+persistent table and point chq at it:
+
+    CREATE TABLE query_log_archive
+    ENGINE = MergeTree()
+    PARTITION BY toYYYYMM(event_date)
+    ORDER BY (event_date, normalized_query_hash)
+    TTL event_date + INTERVAL 90 DAY
+    AS SELECT * FROM system.query_log WHERE 1 = 0;
+
+    CREATE MATERIALIZED VIEW query_log_mv TO query_log_archive
+    AS SELECT * FROM system.query_log;
+
+Then run:
+
+    chq --table query_log_archive --host ...
+
 ## Permissions
 
 Read-only. The ClickHouse user only needs:
 
     GRANT SELECT ON system.query_log TO your_user;
+
+Or if using a custom table:
+
+    GRANT SELECT ON query_log_archive TO your_user;
 
 ## Development
 

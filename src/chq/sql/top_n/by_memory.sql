@@ -12,7 +12,7 @@ SELECT
     quantile(0.95)(memory_usage)                        AS p95_memory,
     formatReadableSize(max(memory_usage))               AS peak_memory_readable,
     topK(1)(user)[1]                                    AS primary_user
-FROM system.query_log
+FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'

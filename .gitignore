@@ -11,3 +11,5 @@ config.yaml
 *.egg
 .pytest_cache/
 .claude/
+report.json
+report.csv

@@ -11,7 +11,7 @@ WITH this_week AS (
         topK(1)(user)[1]                                AS primary_user,
         quantile(0.95)(query_duration_ms)               AS p95_ms,
         avg(read_bytes)                                 AS avg_bytes
-    FROM system.query_log
+    FROM {query_log_table}
     WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
@@ -24,7 +24,7 @@ last_week AS (
         normalized_query_hash,
         quantile(0.95)(query_duration_ms)               AS p95_ms,
         avg(read_bytes)                                 AS avg_bytes
-    FROM system.query_log
+    FROM {query_log_table}
     WHERE event_date >= today() - {lookback_days} * 2
       AND event_date < today() - {lookback_days}
       AND is_initial_query = 1

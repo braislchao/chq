@@ -14,7 +14,7 @@ WITH this_week AS (
         avg(read_bytes)                                 AS avg_read_bytes,
         formatReadableSize(avg(read_bytes))             AS avg_read_readable,
         topK(1)(user)[1]                                AS primary_user
-    FROM system.query_log
+    FROM {query_log_table}
     WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
@@ -24,7 +24,7 @@ WITH this_week AS (
 ),
 baseline AS (
     SELECT DISTINCT normalized_query_hash
-    FROM system.query_log
+    FROM {query_log_table}
     WHERE event_date >= today() - {lookback_days} * 4
       AND event_date < today() - {lookback_days}
       AND is_initial_query = 1

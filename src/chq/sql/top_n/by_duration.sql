@@ -11,7 +11,7 @@ SELECT
     quantile(0.95)(query_duration_ms)                   AS p95_duration_ms,
     max(query_duration_ms)                              AS max_duration_ms,
     topK(1)(user)[1]                                    AS primary_user
-FROM system.query_log
+FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
