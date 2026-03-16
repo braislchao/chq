@@ -99,14 +99,11 @@ Use `chq init` to set up a persistent archive automatically:
 This creates:
 - A `chq_query_log` MergeTree table (partitioned by month, 90-day TTL)
 - A `chq_query_log_mv` materialized view that copies new entries from `system.query_log`
+- Backfills existing `system.query_log` data into the new table
 
 Then run chq against the archive:
 
     chq --table default.chq_query_log --host ch.example.com --password secret
-
-To backfill existing data before the materialized view was created:
-
-    INSERT INTO chq_query_log SELECT * FROM system.query_log
 
 ## Custom source table
 
