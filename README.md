@@ -83,25 +83,37 @@ Defaults are reasonable for most clusters. Override as needed:
     min_batch_size          1000       INSERT rows below this are flagged
     min_parts_threshold       20       SelectedParts above this are flagged
 
+## ClickHouse Cloud persistence
+
+On ClickHouse Cloud, `system.query_log` is **replica-local** with a **30-day
+hard retention limit**. When instances scale to zero or replicas are replaced,
+the log data is lost.
+
+Use `chq init` to set up a persistent archive automatically:
+
+    chq init --host ch.example.com --password secret
+
+    # use a custom database
+    chq init --host ch.example.com --password secret --database monitoring
+
+This creates:
+- A `chq_query_log` MergeTree table (partitioned by month, 90-day TTL)
+- A `chq_query_log_mv` materialized view that copies new entries from `system.query_log`
+
+Then run chq against the archive:
+
+    chq --table default.chq_query_log --host ch.example.com --password secret
+
+To backfill existing data before the materialized view was created:
+
+    INSERT INTO chq_query_log SELECT * FROM system.query_log
+
 ## Custom source table
 
-By default chq reads from `system.query_log`. If your ClickHouse Cloud
-instances scale down and lose history, you can archive the log to a
-persistent table and point chq at it:
+By default chq reads from `system.query_log`. You can point it at any table
+with the same schema using `--table`:
 
-    CREATE TABLE query_log_archive
-    ENGINE = MergeTree()
-    PARTITION BY toYYYYMM(event_date)
-    ORDER BY (event_date, normalized_query_hash)
-    TTL event_date + INTERVAL 90 DAY
-    AS SELECT * FROM system.query_log WHERE 1 = 0;
-
-    CREATE MATERIALIZED VIEW query_log_mv TO query_log_archive
-    AS SELECT * FROM system.query_log;
-
-Then run:
-
-    chq --table query_log_archive --host ...
+    chq --table my_database.query_log_archive --host ...
 
 ## Permissions
 

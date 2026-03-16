@@ -6,10 +6,11 @@ import sys
 import click
 
 from chq.config import CHECKS, load_config
+from chq.init_cmd import init_cmd
 from chq.runner import run
 
 
-@click.command()
+@click.group(invoke_without_command=True)
 @click.option("--host", envvar="CHQ_HOST", default=None, help="ClickHouse host.")
 @click.option("--port", envvar="CHQ_PORT", default=None, type=int, help="ClickHouse port (default: 8443).")
 @click.option("--user", envvar="CHQ_USER", default=None, help="ClickHouse user (default: default).")
@@ -30,8 +31,9 @@ from chq.runner import run
 @click.option("--list-checks", is_flag=True, help="List available checks and exit.")
 @click.option("--show-sql", is_flag=True, help="Print the SQL for each check instead of running it.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+@click.pass_context
 def main(
-    host, port, user, password, secure, table, config_path, fmt, slack_webhook,
+    ctx, host, port, user, password, secure, table, config_path, fmt, slack_webhook,
     output_path, only, lookback_days, top_n, list_checks, show_sql, verbose,
 ):
     """chq — ClickHouse query performance analyzer.
@@ -40,6 +42,9 @@ def main(
     regressions, and cost attribution. Works with any ClickHouse instance
     (Cloud, self-hosted, or on-prem).
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(levelname)s: %(message)s",
@@ -86,6 +91,9 @@ def main(
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+main.add_command(init_cmd)
 
 
 def _print_checks():
