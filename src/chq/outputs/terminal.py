@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    pass
 
 CATEGORY_TITLES = {
     "top_n": "Top N \u2014 Most Expensive Queries",

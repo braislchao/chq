@@ -95,6 +95,7 @@ def _substitute(sql: str, params: dict) -> str:
     JSONExtract or Map access like ``col['key']``) are left untouched,
     unlike str.format_map which would raise on them.
     """
+
     def _replace(match: re.Match) -> str:
         key = match.group(1)
         if key in params:

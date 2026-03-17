@@ -1,7 +1,5 @@
 """Tests for SQL loading and template substitution."""
 
-import pytest
-
 from chq.config import CHECKS, Config
 from chq.executor import load_queries
 
@@ -10,14 +8,10 @@ def test_load_all_queries():
     """All SQL files load without error and all placeholders are substituted."""
     config = Config()
     queries = load_queries(config)
-    assert len(queries) == len(CHECKS), (
-        f"Expected {len(CHECKS)} queries, got {len(queries)}"
-    )
+    assert len(queries) == len(CHECKS), f"Expected {len(CHECKS)} queries, got {len(queries)}"
     for q in queries:
         # No unsubstituted placeholders should remain
-        assert "{" not in q.sql, (
-            f"{q.category}/{q.name} has unsubstituted placeholders"
-        )
+        assert "{" not in q.sql, f"{q.category}/{q.name} has unsubstituted placeholders"
 
 
 def test_load_filtered_categories():

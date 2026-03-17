@@ -25,9 +25,7 @@ def run(config: Config) -> None:
         return
 
     total_rows = sum(len(r.rows) for r in results)
-    logger.info(
-        "Executed %d checks, %d total result rows.", len(results), total_rows
-    )
+    logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
 
     fmt = config.format
     if fmt not in OUTPUT_DISPATCHERS:

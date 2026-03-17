@@ -16,6 +16,7 @@ WHERE event_date >= today() - {lookback_days}
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
   AND query NOT LIKE '%system.query_log%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY max(memory_usage) DESC
 LIMIT {top_n}

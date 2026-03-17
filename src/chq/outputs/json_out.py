@@ -22,10 +22,7 @@ def output_json(results: list, config) -> None:
             "category": qr.category,
             "name": qr.name,
             "columns": list(qr.columns),
-            "rows": [
-                dict(zip(qr.columns, row))
-                for row in qr.rows
-            ],
+            "rows": [dict(zip(qr.columns, row)) for row in qr.rows],
         }
 
     report = {

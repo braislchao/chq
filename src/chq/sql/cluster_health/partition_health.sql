@@ -56,6 +56,8 @@ part_stats AS (
         round(count() / nullIf(sum(bytes_on_disk) / 1024 / 1024 / 1024, 0), 0) AS parts_per_gb
     FROM system.parts
     WHERE active AND database NOT IN ('system')
+      AND table NOT LIKE '.inner.%'
+      AND table NOT LIKE '.tmp.inner.%'
     GROUP BY database, table, partition
     HAVING sum(rows) > 100000 AND sum(bytes_on_disk) > 100000000
 ),

@@ -5,6 +5,9 @@
 --   of a missing cache layer, a polling loop with too-short intervals, or an
 --   application retry storm. Consolidating or caching these calls can free
 --   significant cluster capacity.
+-- Note: INSERT queries are intentionally excluded — streaming ingestion tools
+--   (e.g. Kafka Connect) repeat the same INSERT pattern by design and are not
+--   a caching/polling problem.
 
 SELECT
     if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
@@ -17,6 +20,8 @@ WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
   AND query NOT LIKE '%system.query_log%'
+  AND query NOT ILIKE 'INSERT%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 HAVING avg_per_hour > {repeat_threshold}
 ORDER BY total_executions DESC

@@ -72,7 +72,7 @@ Settings are resolved in this order (last wins):
 
 All env vars use the `CHQ_` prefix: `CHQ_HOST`, `CHQ_PORT`, `CHQ_USER`,
 `CHQ_PASSWORD`, `CHQ_SECURE`, `CHQ_FORMAT`, `CHQ_SLACK_WEBHOOK`,
-`CHQ_LOOKBACK_DAYS`, `CHQ_TOP_N`.
+`CHQ_LOOKBACK_DAYS`, `CHQ_TOP_N`, `CHQ_EXCLUDE_USERS` (comma-separated).
 
 See `config.yaml.example` for the full set of options.
 
@@ -90,7 +90,35 @@ Defaults are reasonable for most clusters. Override as needed:
     min_batch_size          1000       INSERT rows below this are flagged
     min_parts_threshold       20       SelectedParts above this are flagged
 
-## ClickHouse Cloud persistence
+## Filtering noise
+
+By default, ClickHouse Cloud internal service users (`observability-internal`,
+`monitoring-internal`, etc.) and `sql-console` users are excluded from all
+query-level checks. You can include them back with `--include-internal`.
+
+To exclude additional users (e.g. `default` user used only by tooling, or
+specific service accounts that pollute the report):
+
+    chq --exclude-users default,my-etl-user --host ...
+
+Or in a config file:
+
+    exclude_users:
+      - default
+      - my-etl-user
+
+Via env var (comma-separated):
+
+    CHQ_EXCLUDE_USERS=default,my-etl-user chq --host ...
+
+INSERT queries are excluded from `top_n`, `anomalies`, and `cost_attribution`
+checks — their ingestion health is covered by the dedicated
+`anti_patterns/small_insert_batches` and `cluster_health` checks instead.
+
+Materialized View inner backing tables (`.inner.*`, `.tmp.inner.*`) are
+automatically excluded from `cluster_health` checks, since their parts and
+merges are driven by MV mechanics, not by user-actionable queries.
+
 
 On ClickHouse Cloud, `system.query_log` is **replica-local** with a **30-day
 hard retention limit**. When instances scale to zero or replicas are replaced,

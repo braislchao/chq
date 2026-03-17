@@ -11,6 +11,20 @@ from typing import Any
 
 import yaml
 
+INTERNAL_USERS = (
+    "observability-internal",
+    "monitoring-internal",
+    "operator-internal",
+    "prometheus-internal",
+    "management-internal",
+    "backups-internal",
+)
+
+# ClickHouse Cloud / SQL console users that pollute query-level analysis.
+# These are excluded by default unless the user explicitly opts in via
+# --include-internal. Application-specific users can be suppressed via `exclude_users`.
+CLOUD_NOISE_USERS = ("sql-console",)
+
 
 @dataclass
 class Config:
@@ -24,8 +38,8 @@ class Config:
     secure: bool = True
 
     # Output
-    format: str = "terminal"  # terminal, slack, json, csv
-    output_path: str | None = None  # file path for json/csv output
+    format: str = "terminal"  # terminal, slack, json, csv, html
+    output_path: str | None = None  # file path for json/csv/html output
     slack_webhook: str = ""
 
     # Source table (override for persistent query log archives)
@@ -42,12 +56,27 @@ class Config:
     min_batch_size: int = 1000
     min_parts_threshold: int = 20
 
+    # Filtering
+    include_internal: bool = False
+    # Additional users to exclude from query-level analysis.
+    exclude_users: list[str] | None = None
+
     # Category filter (None = all)
     only_categories: list[str] | None = None
 
     @property
     def sql_params(self) -> dict[str, Any]:
         """Return a dict of query parameters for SQL template substitution."""
+        if self.include_internal:
+            excluded = list(self.exclude_users or [])
+        else:
+            excluded = list(INTERNAL_USERS) + list(CLOUD_NOISE_USERS) + list(self.exclude_users or [])
+
+        excluded_users_clause = ""
+        if excluded:
+            users_list = ", ".join(f"'{u}'" for u in excluded)
+            excluded_users_clause = f"AND user NOT IN ({users_list})"
+
         return {
             "query_log_table": self.table,
             "lookback_days": self.lookback_days,
@@ -59,6 +88,7 @@ class Config:
             "repeat_threshold": self.repeat_threshold,
             "min_batch_size": self.min_batch_size,
             "min_parts_threshold": self.min_parts_threshold,
+            "excluded_users_clause": excluded_users_clause,
         }
 
 
@@ -136,6 +166,13 @@ def load_config(config_path: str | None = None, **cli_overrides: Any) -> Config:
         env_val = os.environ.get(env_key)
         if env_val is not None:
             values[field_name] = _coerce(env_val, field_type)
+
+    # CHQ_EXCLUDE_USERS is a comma-separated list handled separately
+    env_exclude = os.environ.get("CHQ_EXCLUDE_USERS")
+    if env_exclude is not None:
+        env_users = [u.strip() for u in env_exclude.split(",") if u.strip()]
+        existing = values.get("exclude_users") or []
+        values["exclude_users"] = existing + env_users
 
     # 3. CLI overrides (Click passes None for unset flags — skip those)
     for key, val in cli_overrides.items():

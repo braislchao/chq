@@ -3,6 +3,9 @@
 -- Why it matters: A single cheap query repeated thousands of times can cost more
 --   than one heavy outlier. This "death by a thousand cuts" metric surfaces
 --   patterns that top-by-peak rankings miss.
+-- Note: INSERT queries are excluded here — their ingestion cost is covered by
+--   the dedicated anti_patterns/small_insert_batches and
+--   cluster_health/insert_part_fragmentation checks.
 
 SELECT
     if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
@@ -14,7 +17,9 @@ FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
+  AND query_kind != 'Insert'
   AND query NOT LIKE '%system.query_log%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY count() * avg(read_bytes) DESC
 LIMIT {top_n}

@@ -11,5 +11,10 @@ config.yaml
 *.egg
 .pytest_cache/
 .claude/
+.vscode/
 report.json
 report.csv
+report.html
+uv.lock
+.env
+reports/2026-03-17-prod-analysis.md

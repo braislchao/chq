@@ -3,6 +3,8 @@
 --   configurable threshold.
 -- Why it matters: Catching regressions early — before they compound with traffic
 --   growth — prevents incidents and keeps SLOs intact.
+-- Note: INSERT queries are excluded — their latency is better tracked via
+--   cluster_health/insert_duration_by_engine.
 
 WITH this_week AS (
     SELECT
@@ -15,7 +17,9 @@ WITH this_week AS (
     WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query_kind != 'Insert'
       AND query NOT LIKE '%system.query_log%'
+      {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}
 ),
@@ -29,7 +33,9 @@ last_week AS (
       AND event_date < today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query_kind != 'Insert'
       AND query NOT LIKE '%system.query_log%'
+      {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}
 )

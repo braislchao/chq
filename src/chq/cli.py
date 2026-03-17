@@ -10,6 +10,7 @@ from chq.init_cmd import init_cmd
 from chq.runner import run
 
 
+# fmt: off
 @click.group(invoke_without_command=True)
 @click.option("--host", envvar="CHQ_HOST", default=None, help="ClickHouse host.")
 @click.option("--port", envvar="CHQ_PORT", default=None, type=int, help="ClickHouse port (default: 8443).")
@@ -18,11 +19,7 @@ from chq.runner import run
 @click.option("--secure/--no-secure", envvar="CHQ_SECURE", default=None, help="Use TLS (default: true).")
 @click.option("--table", envvar="CHQ_TABLE", default=None, help="Source table (default: system.query_log).")
 @click.option("--config", "config_path", default=None, type=click.Path(exists=True), help="Path to YAML config file.")
-@click.option(
-    "--format", "fmt", envvar="CHQ_FORMAT", default=None,
-    type=click.Choice(["terminal", "slack", "json", "csv", "html"]),
-    help="Output format (default: terminal).",
-)
+@click.option("--format", "fmt", envvar="CHQ_FORMAT", default=None, type=click.Choice(["terminal", "slack", "json", "csv", "html"]), help="Output format (default: terminal).")
 @click.option("--slack-webhook", envvar="CHQ_SLACK_WEBHOOK", default=None, help="Slack webhook URL.")
 @click.option("-o", "--output", "output_path", default=None, help="Output file path (for json/csv).")
 @click.option("--only", default=None, help="Comma-separated categories to run (e.g., top_n,anti_patterns).")
@@ -30,11 +27,31 @@ from chq.runner import run
 @click.option("--top-n", envvar="CHQ_TOP_N", default=None, type=int, help="Number of results per check (default: 10).")
 @click.option("--list-checks", is_flag=True, help="List available checks and exit.")
 @click.option("--show-sql", is_flag=True, help="Print the SQL for each check instead of running it.")
+@click.option("--include-internal", is_flag=True, help="Include ClickHouse Cloud internal users in results (excluded by default).")
+@click.option("--exclude-users", "exclude_users_str", envvar="CHQ_EXCLUDE_USERS", default=None, help="Comma-separated list of extra users to exclude (e.g. 'default,sql-console'). Applied on top of the built-in internal-user filter.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
 @click.pass_context
+# fmt: on
 def main(
-    ctx, host, port, user, password, secure, table, config_path, fmt, slack_webhook,
-    output_path, only, lookback_days, top_n, list_checks, show_sql, verbose,
+    ctx,
+    host,
+    port,
+    user,
+    password,
+    secure,
+    table,
+    config_path,
+    fmt,
+    slack_webhook,
+    output_path,
+    only,
+    lookback_days,
+    top_n,
+    list_checks,
+    show_sql,
+    include_internal,
+    exclude_users_str,
+    verbose,
 ):
     """chq — ClickHouse query performance analyzer.
 
@@ -67,7 +84,11 @@ def main(
         "output_path": output_path,
         "lookback_days": lookback_days,
         "top_n": top_n,
+        "include_internal": include_internal or None,
     }
+
+    if exclude_users_str is not None:
+        cli_overrides["exclude_users"] = [u.strip() for u in exclude_users_str.split(",") if u.strip()]
 
     if only is not None:
         cli_overrides["only_categories"] = [c.strip() for c in only.split(",")]
@@ -76,6 +97,7 @@ def main(
 
     if show_sql:
         from chq.executor import load_queries
+
         for q in load_queries(config):
             click.echo(f"-- {q.category}/{q.name}")
             click.echo(q.sql)
@@ -83,7 +105,10 @@ def main(
         return
 
     if not config.host:
-        click.echo("Error: ClickHouse host is required. Use --host, CHQ_HOST env var, or a config file.", err=True)
+        click.echo(
+            "Error: ClickHouse host is required. Use --host, CHQ_HOST env var, or a config file.",
+            err=True,
+        )
         sys.exit(1)
 
     try:

@@ -51,6 +51,8 @@ FROM
           AND event_time >= now() - INTERVAL {lookback_days} DAY
           AND length(tables) > 0
           AND written_rows > 0
+          -- exclude MV inner backing tables (driven by <system>, not user queries)
+          AND NOT match(arrayElement(tables, 1), '\\.(inner|tmp\\.inner)\\.')
     ) AS q
     LEFT JOIN system.tables AS t
       ON t.database = q.target_db
