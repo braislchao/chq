@@ -20,6 +20,7 @@ WHERE event_date >= today() - {lookback_days}
   AND query_kind = 'Select'
   AND result_rows > 0
   AND query NOT LIKE '%system.query_log%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 HAVING scan_ratio > {scan_ratio_threshold}
 ORDER BY count() * avg(read_rows) DESC

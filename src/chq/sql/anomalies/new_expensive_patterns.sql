@@ -4,6 +4,8 @@
 -- Why it matters: New workloads often ship without proper tuning. Catching them
 --   in their first week gives teams the earliest possible window to optimise
 --   before the pattern becomes entrenched.
+-- Note: INSERT queries are excluded — new ingestion patterns are tracked via
+--   anti_patterns/small_insert_batches.
 
 WITH this_week AS (
     SELECT
@@ -18,7 +20,9 @@ WITH this_week AS (
     WHERE event_date >= today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query_kind != 'Insert'
       AND query NOT LIKE '%system.query_log%'
+      {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING avg_read_bytes > 100000000 OR avg_duration_ms > 10000
 ),
@@ -29,7 +33,9 @@ baseline AS (
       AND event_date < today() - {lookback_days}
       AND is_initial_query = 1
       AND type = 'QueryFinish'
+      AND query_kind != 'Insert'
       AND query NOT LIKE '%system.query_log%'
+      {excluded_users_clause}
 )
 SELECT
     tw.primary_user,

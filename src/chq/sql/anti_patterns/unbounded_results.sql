@@ -19,6 +19,7 @@ WHERE event_date >= today() - {lookback_days}
   AND result_rows > {max_result_rows}
   AND NOT match(query, '(?i)\\bLIMIT\\s+\\d+')
   AND query NOT LIKE '%system.query_log%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY avg_result_rows DESC
 LIMIT {top_n}

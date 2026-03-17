@@ -16,6 +16,7 @@ WHERE event_date >= today() - {lookback_days}
   AND query_kind = 'Select'
   AND match(query, '(?i)\\bSELECT\\s+\\*\\s+FROM\\b')
   AND query NOT LIKE '%system.query_log%'
+  {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY executions DESC
 LIMIT {top_n}
