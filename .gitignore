@@ -11,6 +11,7 @@ config.yaml
 *.egg
 .pytest_cache/
 .claude/
+.vscode/
 report.json
 report.csv
 .env
