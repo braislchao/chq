@@ -64,8 +64,12 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
 
     # Pick the most relevant metric columns by category
     if category == "top_n":
-        for col in ("peak_memory_readable", "total_read_readable",
-                     "p95_duration_ms", "weighted_cost_readable"):
+        for col in (
+            "peak_memory_readable",
+            "total_read_readable",
+            "p95_duration_ms",
+            "weighted_cost_readable",
+        ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_readable", "").replace("_", " ").title()
@@ -90,15 +94,26 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         user = _col_value(row, columns, "user")
         if user:
             parts = [f"*{user}*"]
-        for col in ("total_read_readable", "total_hours", "total_queries", "error_rate_pct"):
+        for col in (
+            "total_read_readable",
+            "total_hours",
+            "total_queries",
+            "error_rate_pct",
+        ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_pct", " %").replace("_", " ").title()
                 parts.append(f"*{label}:* {val}")
 
     elif category == "anti_patterns":
-        for col in ("scan_ratio", "avg_per_hour", "avg_result_rows",
-                     "avg_written_rows", "avg_selected_parts", "executions"):
+        for col in (
+            "scan_ratio",
+            "avg_per_hour",
+            "avg_result_rows",
+            "avg_written_rows",
+            "avg_selected_parts",
+            "executions",
+        ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_", " ").title()
@@ -115,16 +130,28 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         if db and tbl:
             parts.append(f"`{db}.{tbl}`")
         # Show the status/class column (varies by check)
-        for col in ("batch_size_class", "merge_pressure_class",
-                     "merge_duration_class", "partition_status", "engine"):
+        for col in (
+            "batch_size_class",
+            "merge_pressure_class",
+            "merge_duration_class",
+            "partition_status",
+            "engine",
+        ):
             val = _col_value(row, columns, col)
             if val is not None:
                 parts.append(f"*{val}*")
                 break
         # Show key metrics
-        for col in ("added_parts", "total_merges", "active_parts",
-                     "inserts", "small_parts_pct", "avg_rows_per_part",
-                     "p90_merge_duration_s", "avg_part_size_mb"):
+        for col in (
+            "added_parts",
+            "total_merges",
+            "active_parts",
+            "inserts",
+            "small_parts_pct",
+            "avg_rows_per_part",
+            "p90_merge_duration_s",
+            "avg_part_size_mb",
+        ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_", " ").title()
@@ -285,6 +312,4 @@ def send_slack(payloads: list[dict], webhook_url: str) -> None:
         with urllib.request.urlopen(req) as resp:  # noqa: S310
             if resp.status != 200:
                 body = resp.read().decode("utf-8", errors="replace")
-                raise RuntimeError(
-                    f"Slack webhook returned status {resp.status}: {body}"
-                )
+                raise RuntimeError(f"Slack webhook returned status {resp.status}: {body}")

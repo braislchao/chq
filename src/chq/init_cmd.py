@@ -4,7 +4,6 @@ import sys
 
 import click
 
-
 _CREATE_TABLE = """\
 CREATE TABLE IF NOT EXISTS {database}.chq_query_log
 ENGINE = MergeTree()
@@ -23,11 +22,32 @@ AS SELECT * FROM system.query_log\
 
 @click.command("init")
 @click.option("--host", envvar="CHQ_HOST", required=True, help="ClickHouse host.")
-@click.option("--port", envvar="CHQ_PORT", default=8443, type=int, help="ClickHouse port (default: 8443).")
-@click.option("--user", envvar="CHQ_USER", default="default", help="ClickHouse user (default: default).")
+@click.option(
+    "--port",
+    envvar="CHQ_PORT",
+    default=8443,
+    type=int,
+    help="ClickHouse port (default: 8443).",
+)
+@click.option(
+    "--user",
+    envvar="CHQ_USER",
+    default="default",
+    help="ClickHouse user (default: default).",
+)
 @click.option("--password", envvar="CHQ_PASSWORD", default="", help="ClickHouse password.")
-@click.option("--secure/--no-secure", envvar="CHQ_SECURE", default=True, help="Use TLS (default: true).")
-@click.option("--database", envvar="CHQ_DATABASE", default="default", help="Target database (default: default).")
+@click.option(
+    "--secure/--no-secure",
+    envvar="CHQ_SECURE",
+    default=True,
+    help="Use TLS (default: true).",
+)
+@click.option(
+    "--database",
+    envvar="CHQ_DATABASE",
+    default="default",
+    help="Target database (default: default).",
+)
 def init_cmd(host, port, user, password, secure, database):
     """Create persistent query_log archive table and materialized view.
 
@@ -37,7 +57,11 @@ def init_cmd(host, port, user, password, secure, database):
     import clickhouse_connect
 
     client = clickhouse_connect.get_client(
-        host=host, port=port, username=user, password=password, secure=secure,
+        host=host,
+        port=port,
+        username=user,
+        password=password,
+        secure=secure,
     )
 
     try:

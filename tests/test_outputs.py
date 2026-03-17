@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from chq.config import Config
 from chq.executor import QueryResult
 from chq.outputs.json_out import output_json
