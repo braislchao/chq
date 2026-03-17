@@ -23,6 +23,8 @@ WITH
     WHERE event_type = 'MergeParts'
       AND event_time >= t_from
       AND event_time <= t_now
+      AND table NOT LIKE '.inner.%'
+      AND table NOT LIKE '.tmp.inner.%'
 )
 
 , per_table_span AS (

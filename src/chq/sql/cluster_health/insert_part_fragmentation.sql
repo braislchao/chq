@@ -6,6 +6,9 @@
 --   I/O from constant background merges, and degrade query latency.
 --   Batching inserts or enabling async_insert can dramatically reduce
 --   part churn.
+-- Note: .inner. and .tmp.inner. tables (hidden backing tables for Materialized
+--   Views created by <system>) are excluded — they receive INSERTs driven by
+--   their source tables and are not user-actionable.
 
 WITH
     1000 AS SMALL_ROWS,
@@ -23,6 +26,8 @@ WITH
     WHERE event_type = 'NewPart'
       AND event_time > now() - INTERVAL {lookback_days} DAY
       AND length(merged_from) = 0
+      AND table NOT LIKE '.inner.%'
+      AND table NOT LIKE '.tmp.inner.%'
 )
 
 , dedup AS (
