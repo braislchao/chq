@@ -1,16 +1,22 @@
-.PHONY: install dev test dry-run run
+.PHONY: install dev test dry-run run format lint
 
 install:
-	pip install .
+	uv pip install .
 
 dev:
-	pip install -e ".[dev]"
+	uv pip install -e ".[dev]"
 
 test:
-	python -m pytest tests/ -v
+	uv run python -m pytest tests/ -v
 
 dry-run:
-	chq --format json
+	uv run chq --format json
 
 run:
-	chq
+	uv run chq
+
+format:
+	uv run ruff format .
+
+lint:
+	uv run ruff check --fix .
