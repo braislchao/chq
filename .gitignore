@@ -13,3 +13,4 @@ config.yaml
 .claude/
 report.json
 report.csv
+.env
