@@ -51,6 +51,12 @@ def run(config: Config) -> int:
         _log_failures(failures)
         return len(failures)
 
+    if config.owners_map:
+        from chq.owners import annotate, load_owners_map
+
+        results = annotate(results, load_owners_map(config.owners_map))
+        logger.info("Annotated table and view rows with owners from %s", config.owners_map)
+
     total_rows = sum(len(r.rows) for r in results)
     logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
 

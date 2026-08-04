@@ -112,15 +112,19 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         if user:
             parts = [f"*{user}*"]
         else:
-            # select_pct_by_db_and_engine is attributed by database and engine
-            # rather than by user, so lead with those instead.
+            # by_table is attributed by table and select_pct_by_db_and_engine by
+            # database and engine, neither of which has a user column.
+            tbl = _col_value(row, columns, "table")
             db = _col_value(row, columns, "database")
             engine = _col_value(row, columns, "engine")
-            if db:
+            if tbl:
+                parts = [f"`{tbl}`"]
+            elif db:
                 parts = [f"`{db}`"]
                 if engine:
                     parts.append(f"*{engine}*")
         for col in (
+            "cpu_seconds",
             "total_read",
             "total_hours",
             "total_queries",
@@ -284,6 +288,12 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
                 parts.append(f"*{label}:* {_truncate(val, 60)}")
                 if len(parts) >= 5:
                     break
+
+    # Ownership, when an owners map was supplied, is what makes the row actionable.
+    owner = _col_value(row, columns, "owner")
+    if owner:
+        contact = _col_value(row, columns, "owner_contact")
+        parts.append(f"*Owner:* {owner}{f' ({contact})' if contact else ''}")
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":

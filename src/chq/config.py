@@ -91,6 +91,9 @@ class Config:
     # Category filter (None = all)
     only_categories: list[str] | None = None
 
+    # Optional path to a table-glob -> owning-team map. See chq/owners.py.
+    owners_map: str | None = None
+
     @property
     def sql_params(self) -> dict[str, Any]:
         """Return a dict of query parameters for SQL template substitution."""
@@ -135,6 +138,7 @@ CHECKS: dict[tuple[str, str], str] = {
     ("anomalies", "wow_duration_regressions"): "Queries with week-over-week p95 duration regression",
     ("anomalies", "new_expensive_patterns"): "New query patterns that are already expensive",
     ("cost_attribution", "by_user"): "Resource consumption breakdown by user",
+    ("cost_attribution", "by_table"): "CPU and bytes read per table, the axis that maps to an owner",
     ("cost_attribution", "select_pct_by_db_and_engine"): "SELECT query distribution by database and storage engine",
     ("anti_patterns", "full_scans"): "Queries with high read/result row ratio (full scans)",
     ("anti_patterns", "select_star_wide_tables"): "Queries using SELECT * pattern",
@@ -180,6 +184,7 @@ _ENV_MAP: dict[str, tuple[str, type]] = {
     "CHQ_MIN_BATCH_SIZE": ("min_batch_size", int),
     "CHQ_MIN_PARTS_THRESHOLD": ("min_parts_threshold", int),
     "CHQ_MIN_CPU_SECONDS": ("min_cpu_seconds", int),
+    "CHQ_OWNERS_MAP": ("owners_map", str),
 }
 
 

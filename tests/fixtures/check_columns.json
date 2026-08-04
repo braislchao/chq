@@ -37,6 +37,10 @@
       "columns": ["user", "total_queries", "total_read", "total_hours", "errors", "error_rate_pct"],
       "headline": "total_read"
     },
+    "cost_attribution/by_table": {
+      "columns": ["table", "query_patterns", "executions", "cpu_seconds", "total_read", "rows_read", "p95_ms"],
+      "headline": "cpu_seconds"
+    },
     "cost_attribution/select_pct_by_db_and_engine": {
       "columns": ["database", "engine", "select_queries", "pct_of_db", "pct_of_total", "total_read", "avg_duration_s", "bar_chart"],
       "headline": "total_read"
