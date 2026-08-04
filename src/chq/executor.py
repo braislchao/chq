@@ -75,6 +75,7 @@ def execute_queries(config: Config) -> Execution:
     results: list[QueryResult] = []
     failures: list[CheckFailure] = []
     try:
+        _warn_if_window_exceeds_retention(client, config)
         for q in load_queries(config):
             try:
                 result = client.query(q.sql)
@@ -97,6 +98,35 @@ def execute_queries(config: Config) -> Execution:
         client.close()
 
     return Execution(results=results, failures=failures)
+
+
+def _warn_if_window_exceeds_retention(client, config: Config) -> None:
+    """Warn when the source table is shorter than the widest window a check needs.
+
+    anomalies/new_expensive_patterns baselines back lookback_days * 4. If the table
+    does not reach that far, the baseline is empty and every pattern looks new,
+    which is a wrong answer rather than a missing one. On ClickHouse Cloud
+    system.query_log is routinely far shorter than people assume, so check rather
+    than trust.
+    """
+    widest_days = config.lookback_days * 4
+    try:
+        result = client.query(f"SELECT min(event_date), today() - {widest_days} FROM {config.table}")
+        oldest, needed_from = result.result_rows[0]
+    except Exception:
+        return  # never let a diagnostic break the run
+    if oldest is None:
+        log.warning("%s appears to be empty.", config.table)
+        return
+    if oldest > needed_from:
+        log.warning(
+            "%s only reaches back to %s, but the week-over-week baseline needs %s "
+            "(lookback_days * 4). Those checks will treat almost everything as new. "
+            "Point --table at a longer-retention archive, or lower --lookback-days.",
+            config.table,
+            oldest,
+            needed_from,
+        )
 
 
 def _substitute(sql: str, params: dict) -> str:
