@@ -11,16 +11,20 @@ CATEGORY_ORDER = [
     "cost_attribution",
     "top_n",
     "anti_patterns",
+    "schema_audit",
     "cluster_health",
     "anomalies",
+    "query_endpoints",
 ]
 
 CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
     "top_n": "Top N — Most Expensive Queries",
     "anti_patterns": "Anti-Patterns Detected",
+    "schema_audit": "Schema Audit — Sorting Key & Table Design",
     "cluster_health": "Cluster Health — Merges, Parts & Ingestion",
     "anomalies": "Anomalies — Week-over-Week Changes",
+    "query_endpoints": "Query API Endpoints — Week-over-Week Usage",
 }
 
 RECOMMENDATIONS: dict[tuple[str, str], str] = {
@@ -56,6 +60,13 @@ RECOMMENDATIONS: dict[tuple[str, str], str] = {
         "Use this breakdown for chargeback and capacity planning. Consider per-user "
         "quotas (<code>max_concurrent_queries</code>, <code>max_memory_usage</code>) "
         "for the heaviest consumers."
+    ),
+    ("cost_attribution", "select_pct_by_db_and_engine"): (
+        "A high SELECT share on full-scan engines (e.g. UNKNOWN or View without a base "
+        "table filter) signals missing partition predicates or wrong engine choice. "
+        "Databases dominated by a single engine type may benefit from engine-specific "
+        "tuning — for example, ensuring SharedAggregatingMergeTree is used for "
+        "pre-aggregated rollups instead of scanning raw SharedMergeTree tables repeatedly."
     ),
     ("anti_patterns", "full_scans"): (
         "A high scan ratio means the query reads far more rows than it returns. "
@@ -107,6 +118,35 @@ RECOMMENDATIONS: dict[tuple[str, str], str] = {
         "Oversized or fragmented partitions lead to slow queries and merge inefficiency. "
         "Re-evaluate the partition key — aim for partitions that are neither too large "
         "(>10 GB) nor too many (>1,000 active)."
+    ),
+    ("query_endpoints", "wow_usage"): (
+        "Monitor week-over-week call volume to detect sudden traffic spikes or drops on "
+        "individual Query API Endpoints. A spike may indicate a runaway client or "
+        "newly-deployed feature; a drop may signal a broken integration. Endpoints with "
+        "NULL WoW change have no data from the prior window — this is normal for recently "
+        "created endpoints or when the query log retention does not cover a full two-week window."
+    ),
+    ("query_endpoints", "latency"): (
+        "High p95/p99 latency on a Query API Endpoint may indicate a missing filter, "
+        "an unbounded scan, or data growth outpacing the query's partition pruning. "
+        "Compare p50 vs p99 — a large gap suggests occasional full-table scans or "
+        "lock contention rather than a consistently slow query. Consider adding "
+        "WHERE clauses on partition keys or pre-aggregating with a materialized view."
+    ),
+    ("query_endpoints", "data_scanned"): (
+        "Average bytes scanned per call is the primary driver of ClickHouse Cloud cost "
+        "for Query API Endpoints. Endpoints reading hundreds of MiB per call on thousands "
+        "of executions per week can dominate the cluster's compute bill. "
+        "Check whether the query has a selective WHERE clause on the partition/primary key, "
+        "and consider projections or materialized views to pre-compute heavy aggregations."
+    ),
+    ("schema_audit", "missing_company_id_sorting_key"): (
+        "Tables without company_id in their sorting key will perform full-table scans "
+        "for any per-company query. In a multi-tenant system this is the single most "
+        "impactful schema flaw: every query filters by company but the storage layer "
+        "provides no locality for it. Fix by adding company_id as the first or second "
+        "component of the ORDER BY key. For large tables, plan a data migration — "
+        "ClickHouse requires a DROP + re-INSERT to reorder existing data."
     ),
 }
 
@@ -219,6 +259,8 @@ def _compute_health_score(results: list) -> tuple[str, str, int]:
         "cluster_health": 2,
         "top_n": 1,
         "cost_attribution": 1,
+        "query_endpoints": 1,
+        "schema_audit": 2,
     }
 
     for qr in results:
@@ -398,10 +440,13 @@ def output_html(results: list, config) -> None:
 
             checks_html.append('<div class="table-wrap"><table>')
             query_col_idx = None
+            bar_col_indices: set[int] = set()
             checks_html.append("<thead><tr>")
             for i, col in enumerate(qr.columns):
                 if col == "query_text":
                     query_col_idx = i
+                if col == "bar_chart":
+                    bar_col_indices.add(i)
                 checks_html.append(f"<th>{_esc(col)}</th>")
             checks_html.append("</tr></thead>")
             checks_html.append("<tbody>")
@@ -412,6 +457,8 @@ def output_html(results: list, config) -> None:
                         text = str(val)
                         short = _extract_query_summary(text)
                         checks_html.append(f'<td class="query-cell"><details><summary>{_esc(short)}</summary><pre>{_esc(text)}</pre></details></td>')
+                    elif i in bar_col_indices:
+                        checks_html.append(f'<td class="bar-cell">{_esc(val)}</td>')
                     elif _has_severity(str(val)):
                         checks_html.append(f"<td>{_severity_badge(str(val))}</td>")
                     else:
@@ -606,6 +653,10 @@ th, td {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;
 }
 td.query-cell { white-space: normal; max-width: 500px; min-width: 200px; }
+td.bar-cell {
+  font-family: monospace; white-space: nowrap; overflow: visible;
+  max-width: none; min-width: 120px; letter-spacing: 0;
+}
 td.query-cell details summary {
   cursor: pointer; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; display: block;

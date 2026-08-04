@@ -19,7 +19,7 @@ from chq.runner import run
 @click.option("--secure/--no-secure", envvar="CHQ_SECURE", default=None, help="Use TLS (default: true).")
 @click.option("--table", envvar="CHQ_TABLE", default=None, help="Source table (default: system.query_log).")
 @click.option("--config", "config_path", default=None, type=click.Path(exists=True), help="Path to YAML config file.")
-@click.option("--format", "fmt", envvar="CHQ_FORMAT", default=None, type=click.Choice(["terminal", "slack", "json", "csv", "html"]), help="Output format (default: terminal).")
+@click.option("--format", "fmt", envvar="CHQ_FORMAT", default=None, type=click.Choice(["terminal", "slack", "json", "csv", "html", "all"]), help="Output format (default: terminal). Use 'all' to write html/json/csv files and print terminal output in one pass.")
 @click.option("--slack-webhook", envvar="CHQ_SLACK_WEBHOOK", default=None, help="Slack webhook URL.")
 @click.option("-o", "--output", "output_path", default=None, help="Output file path (for json/csv).")
 @click.option("--only", default=None, help="Comma-separated categories to run (e.g., top_n,anti_patterns).")

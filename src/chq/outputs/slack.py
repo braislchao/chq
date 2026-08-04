@@ -16,6 +16,8 @@ CATEGORY_EMOJI = {
     "cost_attribution": ":bar_chart:",
     "anti_patterns": ":warning:",
     "cluster_health": ":gear:",
+    "query_endpoints": ":electric_plug:",
+    "schema_audit": ":mag:",
 }
 
 CATEGORY_TITLES = {
@@ -24,6 +26,8 @@ CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
     "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
+    "query_endpoints": "Query API Endpoints \u2014 Week-over-Week Usage",
+    "schema_audit": "Schema Audit \u2014 Sorting Key & Table Design",
 }
 
 MAX_BLOCKS_PER_MESSAGE = 50
@@ -158,6 +162,49 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
                 parts.append(f"*{label}:* {val}")
                 if len(parts) >= 5:
                     break
+
+    elif category == "query_endpoints":
+        endpoint_id = _col_value(row, columns, "endpoint_id")
+        if endpoint_id:
+            parts.append(f"`{endpoint_id}`")
+
+        # wow_usage columns
+        calls_this = _col_value(row, columns, "calls_this_week")
+        calls_last = _col_value(row, columns, "calls_last_week")
+        if calls_this is not None:
+            parts.append(f"*This week:* {calls_this}")
+        if calls_last is not None:
+            parts.append(f"*Last week:* {calls_last}")
+        wow = _col_value(row, columns, "wow_change_pct")
+        if wow is not None and wow != "None":
+            parts.append(f"*WoW:* {wow}%")
+
+        # latency columns
+        p50 = _col_value(row, columns, "p50_ms")
+        p95 = _col_value(row, columns, "p95_ms")
+        p99 = _col_value(row, columns, "p99_ms")
+        if p50 is not None:
+            parts.append(f"*p50:* {p50}ms")
+        if p95 is not None:
+            parts.append(f"*p95:* {p95}ms")
+        if p99 is not None:
+            parts.append(f"*p99:* {p99}ms")
+
+        # data_scanned columns
+        avg_read = _col_value(row, columns, "avg_read_readable")
+        total_read = _col_value(row, columns, "total_read_readable")
+        max_read = _col_value(row, columns, "max_read_readable")
+        if avg_read is not None:
+            parts.append(f"*Avg scan:* {avg_read}")
+        if total_read is not None:
+            parts.append(f"*Total scan:* {total_read}")
+        if max_read is not None:
+            parts.append(f"*Max scan:* {max_read}")
+
+        # executions (shared by latency + data_scanned)
+        executions = _col_value(row, columns, "executions")
+        if executions is not None:
+            parts.append(f"*Runs:* {executions}")
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":

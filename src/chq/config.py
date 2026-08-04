@@ -104,6 +104,7 @@ CHECKS: dict[tuple[str, str], str] = {
     ("anomalies", "wow_duration_regressions"): "Queries with week-over-week p95 duration regression",
     ("anomalies", "new_expensive_patterns"): "New query patterns that are already expensive",
     ("cost_attribution", "by_user"): "Resource consumption breakdown by user",
+    ("cost_attribution", "select_pct_by_db_and_engine"): "SELECT query distribution by database and storage engine",
     ("anti_patterns", "full_scans"): "Queries with high read/result row ratio (full scans)",
     ("anti_patterns", "select_star_wide_tables"): "Queries using SELECT * pattern",
     ("anti_patterns", "missing_partition_filter"): "Queries scanning too many parts (missing partition filter)",
@@ -114,6 +115,10 @@ CHECKS: dict[tuple[str, str], str] = {
     ("cluster_health", "insert_duration_by_engine"): "Insert latency histogram bucketed by storage engine",
     ("cluster_health", "merge_pressure"): "Merge duration, load, and pressure classification per table",
     ("cluster_health", "partition_health"): "Partition-level fragmentation, merge backlog, and oversized parts",
+    ("query_endpoints", "wow_usage"): "Week-over-week call volume for Query API Endpoints",
+    ("query_endpoints", "latency"): "p50/p95/p99 query duration per Query API Endpoint",
+    ("query_endpoints", "data_scanned"): "Average and total data scanned per call per Query API Endpoint",
+    ("schema_audit", "missing_company_id_sorting_key"): "Operational tables missing company_id in sorting key (full-scan risk)",
 }
 
 

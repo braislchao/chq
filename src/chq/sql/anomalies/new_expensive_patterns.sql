@@ -10,7 +10,7 @@
 WITH this_week AS (
     SELECT
         normalized_query_hash,
-        formatQuery(any(query))            AS query_text,
+        any(query)            AS query_text,
         count()                                         AS executions,
         toInt64(avg(query_duration_ms))                     AS avg_duration_ms,
         toInt64(avg(read_bytes))                          AS avg_read_bytes,

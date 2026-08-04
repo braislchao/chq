@@ -9,7 +9,7 @@
 WITH this_week AS (
     SELECT
         normalized_query_hash,
-        formatQuery(any(query))            AS query_text,
+        any(query)            AS query_text,
         if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
         toInt64(quantile(0.95)(query_duration_ms))          AS p95_ms,
         toInt64(avg(read_bytes))                          AS avg_bytes

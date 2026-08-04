@@ -1,6 +1,9 @@
 """Orchestrator: load queries, execute, format, output."""
 
+import importlib
 import logging
+from dataclasses import replace
+from pathlib import Path
 
 from chq.config import Config
 from chq.executor import execute_queries
@@ -16,26 +19,8 @@ OUTPUT_DISPATCHERS = {
 }
 
 
-def run(config: Config) -> None:
-    """Run all enabled checks and output results in the configured format."""
-    results = execute_queries(config)
-
-    if not results:
-        logger.warning("No query results to report.")
-        return
-
-    total_rows = sum(len(r.rows) for r in results)
-    logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
-
-    fmt = config.format
-    if fmt not in OUTPUT_DISPATCHERS:
-        raise ValueError(f"Unknown output format: {fmt!r}. Choose from: {', '.join(OUTPUT_DISPATCHERS)}")
-
-    # Lazy import to avoid loading all formatters + their deps upfront
-    import importlib
-
+def _dispatch(fmt: str, results, config: Config) -> None:
     mod = importlib.import_module(OUTPUT_DISPATCHERS[fmt])
-
     if fmt == "terminal":
         mod.output_terminal(results, config)
     elif fmt == "slack":
@@ -50,3 +35,39 @@ def run(config: Config) -> None:
         mod.output_csv(results, config)
     elif fmt == "html":
         mod.output_html(results, config)
+
+
+def run(config: Config) -> None:
+    """Run all enabled checks and output results in the configured format."""
+    results = execute_queries(config)
+
+    if not results:
+        logger.warning("No query results to report.")
+        return
+
+    total_rows = sum(len(r.rows) for r in results)
+    logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
+
+    fmt = config.format
+
+    if fmt == "all":
+        _run_all(results, config)
+        return
+
+    if fmt not in OUTPUT_DISPATCHERS:
+        raise ValueError(f"Unknown output format: {fmt!r}. Choose from: {', '.join(OUTPUT_DISPATCHERS)}, all")
+
+    _dispatch(fmt, results, config)
+
+
+def _run_all(results, config: Config) -> None:
+    """Output all formats in one pass: terminal to stdout + html/json/csv to files."""
+    base = Path(config.output_path).stem if config.output_path else "report"
+
+    file_formats = {"html": f"{base}.html", "json": f"{base}.json", "csv": f"{base}.csv"}
+
+    _dispatch("terminal", results, config)
+
+    for fmt, path in file_formats.items():
+        _dispatch(fmt, results, replace(config, output_path=path))
+        logger.info("Wrote %s → %s", fmt.upper(), path)
