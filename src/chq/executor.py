@@ -16,6 +16,13 @@ log = logging.getLogger(__name__)
 SQLQuery = namedtuple("SQLQuery", ["category", "name", "sql"])
 QueryResult = namedtuple("QueryResult", ["category", "name", "columns", "rows"])
 
+# Results plus the checks that raised. Failures are collected rather than raised
+# immediately so one broken check still yields a report for the other 24, but the
+# caller can exit non-zero instead of presenting a silently partial report as
+# complete.
+Execution = namedtuple("Execution", ["results", "failures"])
+CheckFailure = namedtuple("CheckFailure", ["category", "name", "error"])
+
 
 def load_queries(config: Config) -> list[SQLQuery]:
     """Discover and template-render all SQL files bundled in the package.
@@ -49,8 +56,14 @@ def load_queries(config: Config) -> list[SQLQuery]:
     return queries
 
 
-def execute_queries(config: Config) -> list[QueryResult]:
-    """Connect to ClickHouse, run every discovered query, and return results."""
+def execute_queries(config: Config) -> Execution:
+    """Connect to ClickHouse, run every discovered query, and return results.
+
+    A check that raises is recorded in ``Execution.failures`` and does not stop
+    the run, so a single broken check still produces a report for the rest. The
+    caller is expected to surface those failures, because a report that quietly
+    omits a check looks the same as one where the check found nothing.
+    """
     client = clickhouse_connect.get_client(
         host=config.host,
         port=config.port,
@@ -60,6 +73,7 @@ def execute_queries(config: Config) -> list[QueryResult]:
     )
 
     results: list[QueryResult] = []
+    failures: list[CheckFailure] = []
     try:
         for q in load_queries(config):
             try:
@@ -73,19 +87,16 @@ def execute_queries(config: Config) -> list[QueryResult]:
                     )
                 )
             except Exception:
-                log.warning(
-                    "Query %s/%s failed: %s",
-                    q.category,
-                    q.name,
-                    # Format the current exception without a traceback for a
-                    # concise log line; the full traceback is still available
-                    # at DEBUG level via the root logger if needed.
-                    _current_exc_oneline(),
-                )
+                # Format the current exception without a traceback for a concise
+                # log line; the full traceback is still available at DEBUG level
+                # via the root logger if needed.
+                error = _current_exc_oneline()
+                log.warning("Query %s/%s failed: %s", q.category, q.name, error)
+                failures.append(CheckFailure(category=q.category, name=q.name, error=error))
     finally:
         client.close()
 
-    return results
+    return Execution(results=results, failures=failures)
 
 
 def _substitute(sql: str, params: dict) -> str:

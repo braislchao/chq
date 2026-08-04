@@ -112,9 +112,16 @@ def main(
         sys.exit(1)
 
     try:
-        run(config)
+        failed = run(config)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if failed:
+        click.echo(
+            f"Error: {failed} check(s) failed and are missing from this report. Re-run with -v for details.",
+            err=True,
+        )
         sys.exit(1)
 
 

@@ -71,14 +71,14 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
     # Pick the most relevant metric columns by category
     if category == "top_n":
         for col in (
-            "peak_memory_readable",
-            "total_read_readable",
-            "p95_duration_ms",
-            "weighted_cost_readable",
+            "peak_memory",
+            "total_read",
+            "p95_ms",
+            "weighted_cost",
         ):
             val = _col_value(row, columns, col)
             if val is not None:
-                label = col.replace("_readable", "").replace("_", " ").title()
+                label = col.replace("_ms", " ms").replace("_", " ").title()
                 parts.append(f"*{label}:* {val}")
                 break
         executions = _col_value(row, columns, "executions")
@@ -95,13 +95,33 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         curr = _col_value(row, columns, "curr_p95_ms")
         if prev and curr:
             parts.append(f"*p95:* {prev}ms -> {curr}ms")
+        # new_expensive_patterns has no week-over-week columns at all: the point of
+        # that check is that there is no prior window to compare against.
+        avg_duration = _col_value(row, columns, "avg_duration_ms")
+        if avg_duration is not None:
+            parts.append(f"*Avg:* {avg_duration}ms")
+        avg_read = _col_value(row, columns, "avg_read")
+        if avg_read is not None:
+            parts.append(f"*Avg read:* {avg_read}")
+        executions = _col_value(row, columns, "executions")
+        if executions is not None:
+            parts.append(f"*Runs:* {executions}")
 
     elif category == "cost_attribution":
         user = _col_value(row, columns, "user")
         if user:
             parts = [f"*{user}*"]
+        else:
+            # select_pct_by_db_and_engine is attributed by database and engine
+            # rather than by user, so lead with those instead.
+            db = _col_value(row, columns, "database")
+            engine = _col_value(row, columns, "engine")
+            if db:
+                parts = [f"`{db}`"]
+                if engine:
+                    parts.append(f"*{engine}*")
         for col in (
-            "total_read_readable",
+            "total_read",
             "total_hours",
             "total_queries",
             "error_rate_pct",
@@ -118,16 +138,18 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
             "avg_result_rows",
             "avg_written_rows",
             "avg_selected_parts",
-            "executions",
+            "avg_read",
         ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_", " ").title()
                 parts.append(f"*{label}:* {val}")
                 break
-        executions = _col_value(row, columns, "executions")
-        if executions and not any("Executions" in p for p in parts):
-            parts.append(f"*Runs:* {executions}")
+        for col in ("executions", "total_executions"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*Runs:* {val}")
+                break
 
     elif category == "cluster_health":
         # Show database.table identification
@@ -246,6 +268,22 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         refreshes = _col_value(row, columns, "refreshes")
         if refreshes is not None:
             parts.append(f"*Refreshes:* {refreshes}")
+
+    elif category == "schema_audit":
+        db = _col_value(row, columns, "database")
+        tbl = _col_value(row, columns, "table_name")
+        if db and tbl:
+            parts.append(f"`{db}.{tbl}`")
+        issue = _col_value(row, columns, "issue")
+        if issue is not None:
+            parts.append(f"*{issue}*")
+        for col in ("sorting_key", "row_count", "disk_size", "engine"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                label = col.replace("_", " ").title()
+                parts.append(f"*{label}:* {_truncate(val, 60)}")
+                if len(parts) >= 5:
+                    break
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":
