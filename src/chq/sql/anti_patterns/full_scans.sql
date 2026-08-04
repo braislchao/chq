@@ -19,7 +19,7 @@ WHERE event_date >= today() - {lookback_days}
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
   AND result_rows > 0
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 HAVING scan_ratio > {scan_ratio_threshold}

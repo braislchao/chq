@@ -22,7 +22,7 @@ FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type IN ('QueryFinish', 'ExceptionWhileProcessing')
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY user
 ORDER BY sum(read_bytes) DESC

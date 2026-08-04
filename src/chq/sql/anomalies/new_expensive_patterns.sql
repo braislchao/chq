@@ -21,7 +21,7 @@ WITH this_week AS (
       AND is_initial_query = 1
       AND type = 'QueryFinish'
       AND query_kind != 'Insert'
-      AND query NOT LIKE '%system.query_log%'
+      AND query NOT LIKE '%{query_log_table}%'
       {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING avg_read_bytes > 100000000 OR avg_duration_ms > 10000
@@ -34,7 +34,7 @@ baseline AS (
       AND is_initial_query = 1
       AND type = 'QueryFinish'
       AND query_kind != 'Insert'
-      AND query NOT LIKE '%system.query_log%'
+      AND query NOT LIKE '%{query_log_table}%'
       {excluded_users_clause}
 )
 SELECT

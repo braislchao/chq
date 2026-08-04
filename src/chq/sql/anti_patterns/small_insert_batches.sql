@@ -17,7 +17,7 @@ WHERE event_date >= today() - {lookback_days}
   AND type = 'QueryFinish'
   AND query_kind = 'Insert'
   AND written_rows < {min_batch_size}
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY executions DESC

@@ -11,19 +11,43 @@ from typing import Any
 
 import yaml
 
+# ClickHouse Cloud service accounts. These run the service itself (monitoring,
+# backups, autoscaling, certificate renewal, metrics scraping) rather than any
+# workload a team can act on, so counting them makes the report harder to read.
+# Excluded by default unless --include-internal is passed.
+#
+# Note that `default` is deliberately absent: on ClickHouse Cloud it is the
+# admin account that real people and real applications use, so excluding it
+# would hide genuine cost. Pass `--exclude-users default` if it is only a
+# service account on your cluster.
 INTERNAL_USERS = (
     "observability-internal",
     "monitoring-internal",
     "operator-internal",
+    "operator-cert-internal",
     "prometheus-internal",
+    "prometheus-exporter",
     "management-internal",
     "backups-internal",
+    "availability-monitoring-internal",
+    "hyperdx-alert-internal",
+    "hdx-alert-internal",
 )
 
-# ClickHouse Cloud / SQL console users that pollute query-level analysis.
-# These are excluded by default unless the user explicitly opts in via
-# --include-internal. Application-specific users can be suppressed via `exclude_users`.
-CLOUD_NOISE_USERS = ("sql-console",)
+# Matched with NOT LIKE '<prefix>%' rather than by equality. The SQL console
+# appends the operator's email to the user name, as in
+# "sql-console:someone@example.com", so an exact match never catches a real
+# session and every human's ad-hoc queries end up in the report.
+CLOUD_NOISE_PREFIXES = ("sql-console",)
+
+
+def _quote(value: str) -> str:
+    """Escape a string for interpolation into a ClickHouse string literal.
+
+    User names reach the SQL by interpolation, so a name containing a quote or a
+    backslash would otherwise break the query.
+    """
+    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 @dataclass
@@ -70,15 +94,18 @@ class Config:
     @property
     def sql_params(self) -> dict[str, Any]:
         """Return a dict of query parameters for SQL template substitution."""
-        if self.include_internal:
-            excluded = list(self.exclude_users or [])
-        else:
-            excluded = list(INTERNAL_USERS) + list(CLOUD_NOISE_USERS) + list(self.exclude_users or [])
+        excluded = list(self.exclude_users or [])
+        prefixes: list[str] = []
+        if not self.include_internal:
+            excluded = list(INTERNAL_USERS) + excluded
+            prefixes = list(CLOUD_NOISE_PREFIXES)
 
-        excluded_users_clause = ""
+        clauses: list[str] = []
         if excluded:
-            users_list = ", ".join(f"'{u}'" for u in excluded)
-            excluded_users_clause = f"AND user NOT IN ({users_list})"
+            users_list = ", ".join(f"'{_quote(u)}'" for u in excluded)
+            clauses.append(f"AND user NOT IN ({users_list})")
+        clauses.extend(f"AND user NOT LIKE '{_quote(p)}%'" for p in prefixes)
+        excluded_users_clause = "\n  ".join(clauses)
 
         return {
             "query_log_table": self.table,

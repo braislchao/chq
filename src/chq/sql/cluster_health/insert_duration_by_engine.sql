@@ -45,7 +45,7 @@ FROM
             arrayElement(tables, 1) AS tbl,
             current_database        AS target_db,
             replaceAll(substring(tbl, position(tbl, '.') + 1), '`', '') AS target_table
-        FROM system.query_log
+        FROM {query_log_table}
         WHERE type = 'QueryFinish'
           AND query_kind = 'Insert'
           AND event_time >= now() - INTERVAL {lookback_days} DAY
