@@ -55,6 +55,9 @@ class Config:
     repeat_threshold: int = 100  # per hour
     min_batch_size: int = 1000
     min_parts_threshold: int = 20
+    # Floor for the materialized-view week-over-week check, so the ranking is not
+    # dominated by trivial views moving from a fraction of a second to a few seconds.
+    min_cpu_seconds: int = 60
 
     # Filtering
     include_internal: bool = False
@@ -88,6 +91,7 @@ class Config:
             "repeat_threshold": self.repeat_threshold,
             "min_batch_size": self.min_batch_size,
             "min_parts_threshold": self.min_parts_threshold,
+            "min_cpu_seconds": self.min_cpu_seconds,
             "excluded_users_clause": excluded_users_clause,
         }
 
@@ -115,6 +119,9 @@ CHECKS: dict[tuple[str, str], str] = {
     ("cluster_health", "insert_duration_by_engine"): "Insert latency histogram bucketed by storage engine",
     ("cluster_health", "merge_pressure"): "Merge duration, load, and pressure classification per table",
     ("cluster_health", "partition_health"): "Partition-level fragmentation, merge backlog, and oversized parts",
+    ("materialized_views", "refresh_cost"): "Refreshable MV cost ranked by CPU, with read amplification",
+    ("materialized_views", "refresh_failures"): "CPU and rows burnt by refreshes that failed and wrote nothing",
+    ("materialized_views", "refresh_wow"): "Refreshable MVs whose cost grew sharply, and newly expensive views",
     ("query_endpoints", "wow_usage"): "Week-over-week call volume for Query API Endpoints",
     ("query_endpoints", "latency"): "p50/p95/p99 query duration per Query API Endpoint",
     ("query_endpoints", "data_scanned"): "Average and total data scanned per call per Query API Endpoint",
@@ -145,6 +152,7 @@ _ENV_MAP: dict[str, tuple[str, type]] = {
     "CHQ_REPEAT_THRESHOLD": ("repeat_threshold", int),
     "CHQ_MIN_BATCH_SIZE": ("min_batch_size", int),
     "CHQ_MIN_PARTS_THRESHOLD": ("min_parts_threshold", int),
+    "CHQ_MIN_CPU_SECONDS": ("min_cpu_seconds", int),
 }
 
 

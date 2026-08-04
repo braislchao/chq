@@ -16,6 +16,7 @@ CATEGORY_EMOJI = {
     "cost_attribution": ":bar_chart:",
     "anti_patterns": ":warning:",
     "cluster_health": ":gear:",
+    "materialized_views": ":arrows_counterclockwise:",
     "query_endpoints": ":electric_plug:",
     "schema_audit": ":mag:",
 }
@@ -26,6 +27,7 @@ CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
     "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
+    "materialized_views": "Materialized Views \u2014 Refresh Cost & Amplification",
     "query_endpoints": "Query API Endpoints \u2014 Week-over-Week Usage",
     "schema_audit": "Schema Audit \u2014 Sorting Key & Table Design",
 }
@@ -205,6 +207,45 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         executions = _col_value(row, columns, "executions")
         if executions is not None:
             parts.append(f"*Runs:* {executions}")
+
+    elif category == "materialized_views":
+        mv = _col_value(row, columns, "mv")
+        if mv:
+            parts.append(f"`{mv}`")
+
+        # refresh_cost: amplification is the headline, it is what makes the case
+        amplification = _col_value(row, columns, "amplification")
+        if amplification is not None:
+            parts.append(f"*Amplification:* {amplification}x")
+
+        # refresh_failures
+        exception_code = _col_value(row, columns, "exception_code")
+        if exception_code is not None:
+            parts.append(f"*Error:* {exception_code}")
+        failures = _col_value(row, columns, "failures")
+        if failures is not None:
+            parts.append(f"*Failures:* {failures}")
+
+        # refresh_wow
+        cpu_change = _col_value(row, columns, "cpu_change")
+        if cpu_change is not None:
+            parts.append(f"*Change:* {cpu_change}")
+
+        for col in ("cpu_seconds", "wasted_cpu_seconds", "curr_cpu_seconds"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*CPU:* {val}s")
+                break
+
+        for col in ("rows_read", "curr_rows_read"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*Read:* {val}")
+                break
+
+        refreshes = _col_value(row, columns, "refreshes")
+        if refreshes is not None:
+            parts.append(f"*Refreshes:* {refreshes}")
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":

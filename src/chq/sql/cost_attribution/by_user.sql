@@ -3,9 +3,16 @@
 -- Why it matters: Attributing cost to users (service accounts, teams) is the
 --   first step toward chargeback, capacity planning, and identifying who to
 --   engage when the cluster is under pressure.
+-- Note: server-initiated work has an empty user. Refreshable materialized views
+--   are split into their own <mv refresh> bucket rather than being lumped into
+--   <system>, because on many clusters they are the largest consumer and an
+--   unlabelled bucket hides that. Use materialized_views/refresh_cost to break
+--   that bucket down per view.
 
 SELECT
-    if(user = '', '<system>', user)                     AS user,
+    multiIf(user != '', user,
+            log_comment LIKE 'refresh of %', '<mv refresh>',
+            '<system>')                                 AS user,
     count()                                             AS total_queries,
     formatReadableSize(sum(read_bytes))                 AS total_read,
     round(sum(query_duration_ms) / 1000 / 3600, 2)     AS total_hours,

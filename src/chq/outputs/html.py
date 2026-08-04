@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 CATEGORY_ORDER = [
     "cost_attribution",
+    "materialized_views",
     "top_n",
     "anti_patterns",
     "schema_audit",
@@ -19,6 +20,7 @@ CATEGORY_ORDER = [
 
 CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
+    "materialized_views": "Materialized Views — Refresh Cost & Amplification",
     "top_n": "Top N — Most Expensive Queries",
     "anti_patterns": "Anti-Patterns Detected",
     "schema_audit": "Schema Audit — Sorting Key & Table Design",
@@ -139,6 +141,29 @@ RECOMMENDATIONS: dict[tuple[str, str], str] = {
         "of executions per week can dominate the cluster's compute bill. "
         "Check whether the query has a selective WHERE clause on the partition/primary key, "
         "and consider projections or materialized views to pre-compute heavy aggregations."
+    ),
+    ("materialized_views", "refresh_cost"): (
+        "Read amplification is the number to act on: it is rows read per row written. "
+        "A view near 1x is doing incremental work; a view in the thousands is re-scanning "
+        "its sources to emit very little. Fix by filtering the refresh on a watermark or "
+        "partition instead of the full source, or by switching an expensive periodic "
+        "refresh to an incremental materialized view. Because refreshes run with an empty "
+        "user they do not appear under any team in per-user cost reports, so route these "
+        "to whoever owns the view."
+    ),
+    ("materialized_views", "refresh_failures"): (
+        "A failing refresh does all of its reading before it dies, so it costs full price "
+        "and writes nothing, and the retries multiply that. Error 241 is a memory limit, "
+        "which usually means the refresh materialises its whole source rather than working "
+        "incrementally. Note that the target table is also going stale, so this is a "
+        "correctness problem as well as a cost one. Usually the cheapest large win available."
+    ),
+    ("materialized_views", "refresh_wow"): (
+        "Views marked NEW are recent deployments whose cost nobody has reviewed yet, and "
+        "are the most common cause of a sudden cluster cost increase. A large multiplier on "
+        "an existing view means either its source grew or its definition changed. Compare "
+        "the rows-read columns: if reads grew far faster than the data did, the refresh is "
+        "scanning more than it needs to."
     ),
     ("schema_audit", "missing_company_id_sorting_key"): (
         "Tables without company_id in their sorting key will perform full-table scans "
@@ -261,6 +286,7 @@ def _compute_health_score(results: list) -> tuple[str, str, int]:
         "cost_attribution": 1,
         "query_endpoints": 1,
         "schema_audit": 2,
+        "materialized_views": 3,
     }
 
     for qr in results:
