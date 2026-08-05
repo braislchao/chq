@@ -32,7 +32,7 @@ import yaml
 from chq.executor import QueryResult
 
 # Columns that identify the thing being owned, in priority order.
-SUBJECT_COLUMNS = ("mv", "table", "table_name")
+SUBJECT_COLUMNS = ("mv", "table", "source_table", "table_name")
 
 UNOWNED = "UNOWNED"
 
