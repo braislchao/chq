@@ -11,19 +11,43 @@ from typing import Any
 
 import yaml
 
+# ClickHouse Cloud service accounts. These run the service itself (monitoring,
+# backups, autoscaling, certificate renewal, metrics scraping) rather than any
+# workload a team can act on, so counting them makes the report harder to read.
+# Excluded by default unless --include-internal is passed.
+#
+# Note that `default` is deliberately absent: on ClickHouse Cloud it is the
+# admin account that real people and real applications use, so excluding it
+# would hide genuine cost. Pass `--exclude-users default` if it is only a
+# service account on your cluster.
 INTERNAL_USERS = (
     "observability-internal",
     "monitoring-internal",
     "operator-internal",
+    "operator-cert-internal",
     "prometheus-internal",
+    "prometheus-exporter",
     "management-internal",
     "backups-internal",
+    "availability-monitoring-internal",
+    "hyperdx-alert-internal",
+    "hdx-alert-internal",
 )
 
-# ClickHouse Cloud / SQL console users that pollute query-level analysis.
-# These are excluded by default unless the user explicitly opts in via
-# --include-internal. Application-specific users can be suppressed via `exclude_users`.
-CLOUD_NOISE_USERS = ("sql-console",)
+# Matched with NOT LIKE '<prefix>%' rather than by equality. The SQL console
+# appends the operator's email to the user name, as in
+# "sql-console:someone@example.com", so an exact match never catches a real
+# session and every human's ad-hoc queries end up in the report.
+CLOUD_NOISE_PREFIXES = ("sql-console",)
+
+
+def _quote(value: str) -> str:
+    """Escape a string for interpolation into a ClickHouse string literal.
+
+    User names reach the SQL by interpolation, so a name containing a quote or a
+    backslash would otherwise break the query.
+    """
+    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 @dataclass
@@ -55,6 +79,9 @@ class Config:
     repeat_threshold: int = 100  # per hour
     min_batch_size: int = 1000
     min_parts_threshold: int = 20
+    # Floor for the materialized-view week-over-week check, so the ranking is not
+    # dominated by trivial views moving from a fraction of a second to a few seconds.
+    min_cpu_seconds: int = 60
 
     # Filtering
     include_internal: bool = False
@@ -64,18 +91,24 @@ class Config:
     # Category filter (None = all)
     only_categories: list[str] | None = None
 
+    # Optional path to a table-glob -> owning-team map. See chq/owners.py.
+    owners_map: str | None = None
+
     @property
     def sql_params(self) -> dict[str, Any]:
         """Return a dict of query parameters for SQL template substitution."""
-        if self.include_internal:
-            excluded = list(self.exclude_users or [])
-        else:
-            excluded = list(INTERNAL_USERS) + list(CLOUD_NOISE_USERS) + list(self.exclude_users or [])
+        excluded = list(self.exclude_users or [])
+        prefixes: list[str] = []
+        if not self.include_internal:
+            excluded = list(INTERNAL_USERS) + excluded
+            prefixes = list(CLOUD_NOISE_PREFIXES)
 
-        excluded_users_clause = ""
+        clauses: list[str] = []
         if excluded:
-            users_list = ", ".join(f"'{u}'" for u in excluded)
-            excluded_users_clause = f"AND user NOT IN ({users_list})"
+            users_list = ", ".join(f"'{_quote(u)}'" for u in excluded)
+            clauses.append(f"AND user NOT IN ({users_list})")
+        clauses.extend(f"AND user NOT LIKE '{_quote(p)}%'" for p in prefixes)
+        excluded_users_clause = "\n  ".join(clauses)
 
         return {
             "query_log_table": self.table,
@@ -88,6 +121,7 @@ class Config:
             "repeat_threshold": self.repeat_threshold,
             "min_batch_size": self.min_batch_size,
             "min_parts_threshold": self.min_parts_threshold,
+            "min_cpu_seconds": self.min_cpu_seconds,
             "excluded_users_clause": excluded_users_clause,
         }
 
@@ -104,6 +138,8 @@ CHECKS: dict[tuple[str, str], str] = {
     ("anomalies", "wow_duration_regressions"): "Queries with week-over-week p95 duration regression",
     ("anomalies", "new_expensive_patterns"): "New query patterns that are already expensive",
     ("cost_attribution", "by_user"): "Resource consumption breakdown by user",
+    ("cost_attribution", "by_table"): "CPU and bytes read per table, the axis that maps to an owner",
+    ("cost_attribution", "select_pct_by_db_and_engine"): "SELECT query distribution by database and storage engine",
     ("anti_patterns", "full_scans"): "Queries with high read/result row ratio (full scans)",
     ("anti_patterns", "select_star_wide_tables"): "Queries using SELECT * pattern",
     ("anti_patterns", "missing_partition_filter"): "Queries scanning too many parts (missing partition filter)",
@@ -114,6 +150,14 @@ CHECKS: dict[tuple[str, str], str] = {
     ("cluster_health", "insert_duration_by_engine"): "Insert latency histogram bucketed by storage engine",
     ("cluster_health", "merge_pressure"): "Merge duration, load, and pressure classification per table",
     ("cluster_health", "partition_health"): "Partition-level fragmentation, merge backlog, and oversized parts",
+    ("materialized_views", "refresh_waste_summary"): "One row: how much of this cluster's refresh work produced nothing",
+    ("materialized_views", "refresh_cost"): "Refreshable MV cost ranked by CPU, with read amplification",
+    ("materialized_views", "refresh_failures"): "CPU and rows burnt by refreshes that failed and wrote nothing",
+    ("materialized_views", "refresh_wow"): "Refreshable MVs whose cost grew sharply, and newly expensive views",
+    ("query_endpoints", "wow_usage"): "Week-over-week call volume for Query API Endpoints",
+    ("query_endpoints", "latency"): "p50/p95/p99 query duration per Query API Endpoint",
+    ("query_endpoints", "data_scanned"): "Average and total data scanned per call per Query API Endpoint",
+    ("schema_audit", "missing_company_id_sorting_key"): "Operational tables missing company_id in sorting key (full-scan risk)",
 }
 
 
@@ -140,6 +184,8 @@ _ENV_MAP: dict[str, tuple[str, type]] = {
     "CHQ_REPEAT_THRESHOLD": ("repeat_threshold", int),
     "CHQ_MIN_BATCH_SIZE": ("min_batch_size", int),
     "CHQ_MIN_PARTS_THRESHOLD": ("min_parts_threshold", int),
+    "CHQ_MIN_CPU_SECONDS": ("min_cpu_seconds", int),
+    "CHQ_OWNERS_MAP": ("owners_map", str),
 }
 
 

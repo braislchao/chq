@@ -17,6 +17,9 @@ CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
     "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
+    "materialized_views": "Materialized Views \u2014 Refresh Cost & Amplification",
+    "query_endpoints": "Query API Endpoints \u2014 Week-over-Week Usage",
+    "schema_audit": "Schema Audit \u2014 Sorting Key & Table Design",
 }
 
 MAX_CELL_WIDTH = 80

@@ -1,6 +1,9 @@
 """Orchestrator: load queries, execute, format, output."""
 
+import importlib
 import logging
+from dataclasses import replace
+from pathlib import Path
 
 from chq.config import Config
 from chq.executor import execute_queries
@@ -16,26 +19,8 @@ OUTPUT_DISPATCHERS = {
 }
 
 
-def run(config: Config) -> None:
-    """Run all enabled checks and output results in the configured format."""
-    results = execute_queries(config)
-
-    if not results:
-        logger.warning("No query results to report.")
-        return
-
-    total_rows = sum(len(r.rows) for r in results)
-    logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
-
-    fmt = config.format
-    if fmt not in OUTPUT_DISPATCHERS:
-        raise ValueError(f"Unknown output format: {fmt!r}. Choose from: {', '.join(OUTPUT_DISPATCHERS)}")
-
-    # Lazy import to avoid loading all formatters + their deps upfront
-    import importlib
-
+def _dispatch(fmt: str, results, config: Config) -> None:
     mod = importlib.import_module(OUTPUT_DISPATCHERS[fmt])
-
     if fmt == "terminal":
         mod.output_terminal(results, config)
     elif fmt == "slack":
@@ -50,3 +35,63 @@ def run(config: Config) -> None:
         mod.output_csv(results, config)
     elif fmt == "html":
         mod.output_html(results, config)
+
+
+def run(config: Config) -> int:
+    """Run all enabled checks and output results in the configured format.
+
+    Returns the number of checks that failed. The report is still produced for
+    the checks that succeeded, so the caller can emit output and exit non-zero.
+    """
+    execution = execute_queries(config)
+    results, failures = execution.results, execution.failures
+
+    if not results:
+        logger.warning("No query results to report.")
+        _log_failures(failures)
+        return len(failures)
+
+    if config.owners_map:
+        from chq.owners import annotate, load_owners_map
+
+        results = annotate(results, load_owners_map(config.owners_map))
+        logger.info("Annotated table and view rows with owners from %s", config.owners_map)
+
+    total_rows = sum(len(r.rows) for r in results)
+    logger.info("Executed %d checks, %d total result rows.", len(results), total_rows)
+
+    fmt = config.format
+
+    if fmt == "all":
+        _run_all(results, config)
+    elif fmt not in OUTPUT_DISPATCHERS:
+        raise ValueError(f"Unknown output format: {fmt!r}. Choose from: {', '.join(OUTPUT_DISPATCHERS)}, all")
+    else:
+        _dispatch(fmt, results, config)
+
+    _log_failures(failures)
+    return len(failures)
+
+
+def _log_failures(failures) -> None:
+    """Report failed checks, so a partial report is never mistaken for a clean one."""
+    if not failures:
+        return
+    logger.error(
+        "%d check(s) failed and are missing from this report: %s",
+        len(failures),
+        ", ".join(f"{f.category}/{f.name}" for f in failures),
+    )
+
+
+def _run_all(results, config: Config) -> None:
+    """Output all formats in one pass: terminal to stdout + html/json/csv to files."""
+    base = Path(config.output_path).stem if config.output_path else "report"
+
+    file_formats = {"html": f"{base}.html", "json": f"{base}.json", "csv": f"{base}.csv"}
+
+    _dispatch("terminal", results, config)
+
+    for fmt, path in file_formats.items():
+        _dispatch(fmt, results, replace(config, output_path=path))
+        logger.info("Wrote %s → %s", fmt.upper(), path)

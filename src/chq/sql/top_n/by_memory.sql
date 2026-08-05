@@ -9,13 +9,13 @@ SELECT
     count()                                             AS executions,
     formatReadableSize(max(memory_usage))               AS peak_memory,
     formatReadableSize(quantile(0.95)(memory_usage))    AS p95_memory,
-    formatQuery(any(query))                             AS query_text
+    any(query)                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY max(memory_usage) DESC

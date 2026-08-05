@@ -16,6 +16,13 @@ log = logging.getLogger(__name__)
 SQLQuery = namedtuple("SQLQuery", ["category", "name", "sql"])
 QueryResult = namedtuple("QueryResult", ["category", "name", "columns", "rows"])
 
+# Results plus the checks that raised. Failures are collected rather than raised
+# immediately so one broken check still yields a report for the other 24, but the
+# caller can exit non-zero instead of presenting a silently partial report as
+# complete.
+Execution = namedtuple("Execution", ["results", "failures"])
+CheckFailure = namedtuple("CheckFailure", ["category", "name", "error"])
+
 
 def load_queries(config: Config) -> list[SQLQuery]:
     """Discover and template-render all SQL files bundled in the package.
@@ -49,8 +56,14 @@ def load_queries(config: Config) -> list[SQLQuery]:
     return queries
 
 
-def execute_queries(config: Config) -> list[QueryResult]:
-    """Connect to ClickHouse, run every discovered query, and return results."""
+def execute_queries(config: Config) -> Execution:
+    """Connect to ClickHouse, run every discovered query, and return results.
+
+    A check that raises is recorded in ``Execution.failures`` and does not stop
+    the run, so a single broken check still produces a report for the rest. The
+    caller is expected to surface those failures, because a report that quietly
+    omits a check looks the same as one where the check found nothing.
+    """
     client = clickhouse_connect.get_client(
         host=config.host,
         port=config.port,
@@ -60,7 +73,9 @@ def execute_queries(config: Config) -> list[QueryResult]:
     )
 
     results: list[QueryResult] = []
+    failures: list[CheckFailure] = []
     try:
+        _warn_if_window_exceeds_retention(client, config)
         for q in load_queries(config):
             try:
                 result = client.query(q.sql)
@@ -73,19 +88,45 @@ def execute_queries(config: Config) -> list[QueryResult]:
                     )
                 )
             except Exception:
-                log.warning(
-                    "Query %s/%s failed: %s",
-                    q.category,
-                    q.name,
-                    # Format the current exception without a traceback for a
-                    # concise log line; the full traceback is still available
-                    # at DEBUG level via the root logger if needed.
-                    _current_exc_oneline(),
-                )
+                # Format the current exception without a traceback for a concise
+                # log line; the full traceback is still available at DEBUG level
+                # via the root logger if needed.
+                error = _current_exc_oneline()
+                log.warning("Query %s/%s failed: %s", q.category, q.name, error)
+                failures.append(CheckFailure(category=q.category, name=q.name, error=error))
     finally:
         client.close()
 
-    return results
+    return Execution(results=results, failures=failures)
+
+
+def _warn_if_window_exceeds_retention(client, config: Config) -> None:
+    """Warn when the source table is shorter than the widest window a check needs.
+
+    anomalies/new_expensive_patterns baselines back lookback_days * 4. If the table
+    does not reach that far, the baseline is empty and every pattern looks new,
+    which is a wrong answer rather than a missing one. On ClickHouse Cloud
+    system.query_log is routinely far shorter than people assume, so check rather
+    than trust.
+    """
+    widest_days = config.lookback_days * 4
+    try:
+        result = client.query(f"SELECT min(event_date), today() - {widest_days} FROM {config.table}")
+        oldest, needed_from = result.result_rows[0]
+    except Exception:
+        return  # never let a diagnostic break the run
+    if oldest is None:
+        log.warning("%s appears to be empty.", config.table)
+        return
+    if oldest > needed_from:
+        log.warning(
+            "%s only reaches back to %s, but the week-over-week baseline needs %s "
+            "(lookback_days * 4). Those checks will treat almost everything as new. "
+            "Point --table at a longer-retention archive, or lower --lookback-days.",
+            config.table,
+            oldest,
+            needed_from,
+        )
 
 
 def _substitute(sql: str, params: dict) -> str:

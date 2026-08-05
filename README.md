@@ -41,8 +41,9 @@ List everything available:
 
 ## Checks
 
-17 checks in 5 categories, driven by SQL against `system.query_log`,
-`system.part_log`, `system.parts`, and other system tables.
+27 checks in 8 categories, driven by SQL against the query log (see
+[Custom source table](#custom-source-table)), `system.part_log`, `system.parts`,
+and other system tables.
 
 | Category | Check | Description |
 |---|---|---|
@@ -53,6 +54,8 @@ List everything available:
 | anomalies | `wow_duration_regressions` | p95 duration regressed vs. last week |
 | anomalies | `new_expensive_patterns` | First seen this week, already expensive |
 | cost_attribution | `by_user` | Bytes read, compute hours, error rate per user |
+| cost_attribution | `by_table` | CPU and bytes read per table, the axis that maps to an owner |
+| cost_attribution | `select_pct_by_db_and_engine` | SELECT distribution by database and storage engine |
 | anti_patterns | `full_scans` | Read/result row ratio above threshold |
 | anti_patterns | `select_star_wide_tables` | SELECT * usage |
 | anti_patterns | `missing_partition_filter` | Too many parts scanned |
@@ -63,6 +66,14 @@ List everything available:
 | cluster_health | `insert_duration_by_engine` | Insert latency histogram by storage engine |
 | cluster_health | `merge_pressure` | Merge duration, load, and pressure per table |
 | cluster_health | `partition_health` | Partition fragmentation, merge backlog, oversized parts |
+| materialized_views | `refresh_waste_summary` | One row: how much of this cluster's refresh work produced nothing |
+| materialized_views | `refresh_cost` | Refreshable MV cost by CPU, with read amplification |
+| materialized_views | `refresh_failures` | CPU and rows burnt by refreshes that wrote nothing |
+| materialized_views | `refresh_wow` | MVs whose cost jumped, and newly expensive views |
+| query_endpoints | `wow_usage` | Week-over-week call volume per Query API Endpoint |
+| query_endpoints | `latency` | p50/p95/p99 duration per Query API Endpoint |
+| query_endpoints | `data_scanned` | Average and total data scanned per endpoint call |
+| schema_audit | `missing_company_id_sorting_key` | Operational tables whose sorting key lacks a tenant column |
 
 ## Configuration
 
@@ -92,11 +103,26 @@ Defaults are reasonable for most clusters. Override as needed:
 
 ## Filtering noise
 
-By default, ClickHouse Cloud internal service users (`observability-internal`,
-`monitoring-internal`, etc.) and `sql-console` users are excluded from all
-query-level checks. You can include them back with `--include-internal`.
+By default the ClickHouse Cloud service accounts are excluded from all
+query-level checks: `observability-internal`, `monitoring-internal`,
+`operator-internal`, `operator-cert-internal`, `prometheus-internal`,
+`prometheus-exporter`, `management-internal`, `backups-internal`,
+`availability-monitoring-internal`, `hyperdx-alert-internal` and
+`hdx-alert-internal`. SQL console sessions are excluded by prefix, so
+`sql-console:someone@example.com` is caught as well as bare `sql-console`. Bring
+them all back with `--include-internal`.
 
-To exclude additional users (e.g. `default` user used only by tooling, or
+`default` is **not** excluded by default, because on ClickHouse Cloud it is the
+admin account real people and applications use, and dropping it would hide
+genuine cost. If it is only a service account on your cluster, exclude it
+explicitly.
+
+Do not try to filter service traffic with the `is_internal` column instead. It
+marks anything the server initiated on your behalf, which includes every
+refreshable materialized view refresh, so filtering on it can remove the largest
+consumer on the cluster.
+
+To exclude additional users (e.g. the `default` user when it is only tooling, or
 specific service accounts that pollute the report):
 
     chq --exclude-users default,my-etl-user --host ...
@@ -117,12 +143,32 @@ checks — their ingestion health is covered by the dedicated
 
 Materialized View inner backing tables (`.inner.*`, `.tmp.inner.*`) are
 automatically excluded from `cluster_health` checks, since their parts and
-merges are driven by MV mechanics, not by user-actionable queries.
+merges are driven by MV mechanics, not by user-actionable queries. The cost of
+the views themselves is covered by the `materialized_views` category, which reads
+the query log rather than part metadata.
 
+## Retention: read this before trusting any number
 
-On ClickHouse Cloud, `system.query_log` is **replica-local** with a **30-day
-hard retention limit**. When instances scale to zero or replicas are replaced,
-the log data is lost.
+On ClickHouse Cloud, `system.query_log` is **replica-local** and retained for
+**far less time than you would expect**. On four production Cloud services it
+held between 0 and 5 days, against 77 to 90 days in an archive table, and
+returned only the single replica the client connected to, out of up to 1354 that
+had served queries. Measured shares of the same history:
+
+| Service | `system.query_log` | Archive table | Visible via `system.query_log` |
+|---|---|---|---|
+| A | 5d, 1 of 1354 replicas | 89d | 2.6% |
+| B | 0d, 1 of 54 replicas | 77d | 0.26% |
+| C | 5d, 1 of 56 replicas | 89d | 5.4% |
+| D | 0d, 1 of 38 replicas | 77d | 0.53% |
+
+This does not fail, it returns small plausible numbers. Week-over-week checks are
+hit hardest: `anomalies/new_expensive_patterns` compares against a baseline
+reaching back `lookback_days * 4` (28 days by default), so on a 5-day log the
+baseline is empty and **every** pattern looks new. chq warns when the window it
+needs predates the oldest row in the source table.
+
+So on Cloud, set up an archive and point `--table` at it.
 
 Use `chq init` to set up a persistent archive automatically:
 
@@ -146,6 +192,40 @@ By default chq reads from `system.query_log`. You can point it at any table
 with the same schema using `--table`:
 
     chq --table my_database.query_log_archive --host ...
+
+Every query-log check honours this. The `cluster_health` and `schema_audit`
+checks do not, because they read live state from `system.parts`, `system.merges`,
+`system.part_log` and `system.tables` rather than a query log. On a multi-replica
+Cloud service those are per-replica and therefore partial: one service reported
+2,097 active parts locally against 3,734 distinct parts across its replicas.
+Wrapping them in `clusterAllReplicas()` is not a drop-in fix, because replicas
+report the same parts and the same merge events, so the naive form double counts
+(5,107 rows for those 3,734 distinct parts, and 1.26M part-log rows for 772k
+distinct events). Correcting it needs a per-table dedup key, which is not done
+yet. Until then, read `cluster_health` absolute numbers as indicative of one
+replica rather than as cluster totals.
+
+## Ownership
+
+chq can tell you which table or view is expensive but not who is responsible for
+it, since that mapping lives wherever the schema is defined. Supply it with
+`--owners-map` (or `CHQ_OWNERS_MAP`) and every row naming a table or a view gains
+`owner` and `owner_contact` columns:
+
+    chq --owners-map owners.yml --host ...
+
+```yaml
+owners:
+  "*.analytics_orders_daily_*": {team: "Orders", contact: "#orders-eng"}
+  "*mv_state_history_users*": {team: "Accounts", contact: "#accounts-eng"}
+default: {team: "UNOWNED"}
+```
+
+Patterns are shell globs matched against the row's table or view name, with
+backticks stripped. The longest matching pattern wins, so a specific rule beats a
+general one regardless of order in the file. Anything unmatched is reported as
+`UNOWNED` rather than dropped, because a missing owner and a table nobody touches
+should not look the same.
 
 ## Permissions
 

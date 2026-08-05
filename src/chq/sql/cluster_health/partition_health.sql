@@ -72,9 +72,9 @@ merge_activity AS (
 )
 
 SELECT
-    ps.database,
-    ps.table,
-    ps.partition,
+    ps.database                                         AS database,
+    ps.table                                            AS table,
+    ps.partition                                        AS partition,
     CASE
         WHEN ps.size_gb < 0.1 THEN '⚪ Small / Metadata (ignored)'
 

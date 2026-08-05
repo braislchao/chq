@@ -12,14 +12,14 @@ SELECT
     toInt64(avg(result_rows))                             AS avg_result_rows,
     round(avg(read_rows) / avg(result_rows), 2)        AS scan_ratio,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS query_text
+    any(query)                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
   AND result_rows > 0
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 HAVING scan_ratio > {scan_ratio_threshold}

@@ -10,7 +10,7 @@ SELECT
     toInt64(avg(result_rows))                             AS avg_result_rows,
     max(result_rows)                                    AS max_result_rows,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS query_text
+    any(query)                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
@@ -18,7 +18,7 @@ WHERE event_date >= today() - {lookback_days}
   AND query_kind = 'Select'
   AND result_rows > {max_result_rows}
   AND NOT match(query, '(?i)\\bLIMIT\\s+\\d+')
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY avg_result_rows DESC

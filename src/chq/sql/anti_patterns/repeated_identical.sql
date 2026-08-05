@@ -14,12 +14,12 @@ SELECT
     count()                                             AS total_executions,
     round(count() / {lookback_days} / 24, 2)           AS avg_per_hour,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS query_text
+    any(query)                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   AND query NOT ILIKE 'INSERT%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash

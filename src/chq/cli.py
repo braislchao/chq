@@ -19,10 +19,17 @@ from chq.runner import run
 @click.option("--secure/--no-secure", envvar="CHQ_SECURE", default=None, help="Use TLS (default: true).")
 @click.option("--table", envvar="CHQ_TABLE", default=None, help="Source table (default: system.query_log).")
 @click.option("--config", "config_path", default=None, type=click.Path(exists=True), help="Path to YAML config file.")
-@click.option("--format", "fmt", envvar="CHQ_FORMAT", default=None, type=click.Choice(["terminal", "slack", "json", "csv", "html"]), help="Output format (default: terminal).")
+@click.option("--format", "fmt", envvar="CHQ_FORMAT", default=None, type=click.Choice(["terminal", "slack", "json", "csv", "html", "all"]), help="Output format (default: terminal). Use 'all' to write html/json/csv files and print terminal output in one pass.")
 @click.option("--slack-webhook", envvar="CHQ_SLACK_WEBHOOK", default=None, help="Slack webhook URL.")
 @click.option("-o", "--output", "output_path", default=None, help="Output file path (for json/csv).")
 @click.option("--only", default=None, help="Comma-separated categories to run (e.g., top_n,anti_patterns).")
+@click.option(
+    "--owners-map",
+    envvar="CHQ_OWNERS_MAP",
+    default=None,
+    type=click.Path(exists=True),
+    help="JSON/YAML map of table glob -> owning team, added as an owner column to table and view rows.",
+)
 @click.option("--lookback-days", envvar="CHQ_LOOKBACK_DAYS", default=None, type=int, help="Analysis window in days (default: 7).")
 @click.option("--top-n", envvar="CHQ_TOP_N", default=None, type=int, help="Number of results per check (default: 10).")
 @click.option("--list-checks", is_flag=True, help="List available checks and exit.")
@@ -45,6 +52,7 @@ def main(
     slack_webhook,
     output_path,
     only,
+    owners_map,
     lookback_days,
     top_n,
     list_checks,
@@ -85,6 +93,7 @@ def main(
         "lookback_days": lookback_days,
         "top_n": top_n,
         "include_internal": include_internal or None,
+        "owners_map": owners_map,
     }
 
     if exclude_users_str is not None:
@@ -112,9 +121,16 @@ def main(
         sys.exit(1)
 
     try:
-        run(config)
+        failed = run(config)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if failed:
+        click.echo(
+            f"Error: {failed} check(s) failed and are missing from this report. Re-run with -v for details.",
+            err=True,
+        )
         sys.exit(1)
 
 

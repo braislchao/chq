@@ -9,7 +9,7 @@
 WITH this_week AS (
     SELECT
         normalized_query_hash,
-        formatQuery(any(query))            AS query_text,
+        any(query)            AS query_text,
         if(topK(1)(user)[1] = '', '<system>', topK(1)(user)[1]) AS primary_user,
         toInt64(quantile(0.95)(query_duration_ms))          AS p95_ms,
         toInt64(avg(read_bytes))                          AS avg_bytes
@@ -18,7 +18,7 @@ WITH this_week AS (
       AND is_initial_query = 1
       AND type = 'QueryFinish'
       AND query_kind != 'Insert'
-      AND query NOT LIKE '%system.query_log%'
+      AND query NOT LIKE '%{query_log_table}%'
       {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}
@@ -34,7 +34,7 @@ last_week AS (
       AND is_initial_query = 1
       AND type = 'QueryFinish'
       AND query_kind != 'Insert'
-      AND query NOT LIKE '%system.query_log%'
+      AND query NOT LIKE '%{query_log_table}%'
       {excluded_users_clause}
     GROUP BY normalized_query_hash
     HAVING count() >= {min_executions}

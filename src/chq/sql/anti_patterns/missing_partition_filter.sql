@@ -11,14 +11,14 @@ SELECT
     toInt64(avg(ProfileEvents['SelectedParts']))          AS avg_selected_parts,
     toInt64(avg(read_rows))                               AS avg_read_rows,
     formatReadableSize(avg(read_bytes))                 AS avg_read,
-    formatQuery(any(query))                             AS query_text
+    any(query)                             AS query_text
 FROM {query_log_table}
 WHERE event_date >= today() - {lookback_days}
   AND is_initial_query = 1
   AND type = 'QueryFinish'
   AND query_kind = 'Select'
   AND ProfileEvents['SelectedParts'] > {min_parts_threshold}
-  AND query NOT LIKE '%system.query_log%'
+  AND query NOT LIKE '%{query_log_table}%'
   {excluded_users_clause}
 GROUP BY normalized_query_hash
 ORDER BY avg_selected_parts * executions DESC

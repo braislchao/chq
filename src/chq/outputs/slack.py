@@ -16,6 +16,9 @@ CATEGORY_EMOJI = {
     "cost_attribution": ":bar_chart:",
     "anti_patterns": ":warning:",
     "cluster_health": ":gear:",
+    "materialized_views": ":arrows_counterclockwise:",
+    "query_endpoints": ":electric_plug:",
+    "schema_audit": ":mag:",
 }
 
 CATEGORY_TITLES = {
@@ -24,6 +27,9 @@ CATEGORY_TITLES = {
     "cost_attribution": "Cost Attribution",
     "anti_patterns": "Anti-Patterns Detected",
     "cluster_health": "Cluster Health \u2014 Merges, Parts & Ingestion",
+    "materialized_views": "Materialized Views \u2014 Refresh Cost & Amplification",
+    "query_endpoints": "Query API Endpoints \u2014 Week-over-Week Usage",
+    "schema_audit": "Schema Audit \u2014 Sorting Key & Table Design",
 }
 
 MAX_BLOCKS_PER_MESSAGE = 50
@@ -65,14 +71,14 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
     # Pick the most relevant metric columns by category
     if category == "top_n":
         for col in (
-            "peak_memory_readable",
-            "total_read_readable",
-            "p95_duration_ms",
-            "weighted_cost_readable",
+            "peak_memory",
+            "total_read",
+            "p95_ms",
+            "weighted_cost",
         ):
             val = _col_value(row, columns, col)
             if val is not None:
-                label = col.replace("_readable", "").replace("_", " ").title()
+                label = col.replace("_ms", " ms").replace("_", " ").title()
                 parts.append(f"*{label}:* {val}")
                 break
         executions = _col_value(row, columns, "executions")
@@ -89,13 +95,37 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
         curr = _col_value(row, columns, "curr_p95_ms")
         if prev and curr:
             parts.append(f"*p95:* {prev}ms -> {curr}ms")
+        # new_expensive_patterns has no week-over-week columns at all: the point of
+        # that check is that there is no prior window to compare against.
+        avg_duration = _col_value(row, columns, "avg_duration_ms")
+        if avg_duration is not None:
+            parts.append(f"*Avg:* {avg_duration}ms")
+        avg_read = _col_value(row, columns, "avg_read")
+        if avg_read is not None:
+            parts.append(f"*Avg read:* {avg_read}")
+        executions = _col_value(row, columns, "executions")
+        if executions is not None:
+            parts.append(f"*Runs:* {executions}")
 
     elif category == "cost_attribution":
         user = _col_value(row, columns, "user")
         if user:
             parts = [f"*{user}*"]
+        else:
+            # by_table is attributed by table and select_pct_by_db_and_engine by
+            # database and engine, neither of which has a user column.
+            tbl = _col_value(row, columns, "table")
+            db = _col_value(row, columns, "database")
+            engine = _col_value(row, columns, "engine")
+            if tbl:
+                parts = [f"`{tbl}`"]
+            elif db:
+                parts = [f"`{db}`"]
+                if engine:
+                    parts.append(f"*{engine}*")
         for col in (
-            "total_read_readable",
+            "cpu_seconds",
+            "total_read",
             "total_hours",
             "total_queries",
             "error_rate_pct",
@@ -112,16 +142,18 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
             "avg_result_rows",
             "avg_written_rows",
             "avg_selected_parts",
-            "executions",
+            "avg_read",
         ):
             val = _col_value(row, columns, col)
             if val is not None:
                 label = col.replace("_", " ").title()
                 parts.append(f"*{label}:* {val}")
                 break
-        executions = _col_value(row, columns, "executions")
-        if executions and not any("Executions" in p for p in parts):
-            parts.append(f"*Runs:* {executions}")
+        for col in ("executions", "total_executions"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*Runs:* {val}")
+                break
 
     elif category == "cluster_health":
         # Show database.table identification
@@ -158,6 +190,128 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
                 parts.append(f"*{label}:* {val}")
                 if len(parts) >= 5:
                     break
+
+    elif category == "query_endpoints":
+        endpoint_id = _col_value(row, columns, "endpoint_id")
+        if endpoint_id:
+            parts.append(f"`{endpoint_id}`")
+
+        # wow_usage columns
+        calls_this = _col_value(row, columns, "calls_this_week")
+        calls_last = _col_value(row, columns, "calls_last_week")
+        if calls_this is not None:
+            parts.append(f"*This week:* {calls_this}")
+        if calls_last is not None:
+            parts.append(f"*Last week:* {calls_last}")
+        wow = _col_value(row, columns, "wow_change_pct")
+        if wow is not None and wow != "None":
+            parts.append(f"*WoW:* {wow}%")
+
+        # latency columns
+        p50 = _col_value(row, columns, "p50_ms")
+        p95 = _col_value(row, columns, "p95_ms")
+        p99 = _col_value(row, columns, "p99_ms")
+        if p50 is not None:
+            parts.append(f"*p50:* {p50}ms")
+        if p95 is not None:
+            parts.append(f"*p95:* {p95}ms")
+        if p99 is not None:
+            parts.append(f"*p99:* {p99}ms")
+
+        # data_scanned columns
+        avg_read = _col_value(row, columns, "avg_read_readable")
+        total_read = _col_value(row, columns, "total_read_readable")
+        max_read = _col_value(row, columns, "max_read_readable")
+        if avg_read is not None:
+            parts.append(f"*Avg scan:* {avg_read}")
+        if total_read is not None:
+            parts.append(f"*Total scan:* {total_read}")
+        if max_read is not None:
+            parts.append(f"*Max scan:* {max_read}")
+
+        # executions (shared by latency + data_scanned)
+        executions = _col_value(row, columns, "executions")
+        if executions is not None:
+            parts.append(f"*Runs:* {executions}")
+
+    elif category == "materialized_views":
+        # refresh_waste_summary is one row for the whole cluster, so it has no view
+        # name and leads with the share of refresh work that produced nothing.
+        waste_pct = _col_value(row, columns, "waste_pct")
+        if waste_pct is not None:
+            parts.append(f"*{waste_pct}% of refresh CPU produced nothing*")
+            for col, label in (
+                ("wasted_cpu_seconds", "Wasted"),
+                ("useful_cpu_seconds", "Useful"),
+                ("failures", "Failures"),
+                ("failing_views", "Failing views"),
+                ("rows_read_by_failures", "Read by failures"),
+            ):
+                val = _col_value(row, columns, col)
+                if val is not None:
+                    suffix = "s" if col.endswith("_seconds") else ""
+                    parts.append(f"*{label}:* {val}{suffix}")
+            return " | ".join(parts)
+
+        mv = _col_value(row, columns, "mv")
+        if mv:
+            parts.append(f"`{mv}`")
+
+        # refresh_cost: amplification is the headline, it is what makes the case
+        amplification = _col_value(row, columns, "amplification")
+        if amplification is not None:
+            parts.append(f"*Amplification:* {amplification}x")
+
+        # refresh_failures
+        exception_code = _col_value(row, columns, "exception_code")
+        if exception_code is not None:
+            parts.append(f"*Error:* {exception_code}")
+        failures = _col_value(row, columns, "failures")
+        if failures is not None:
+            parts.append(f"*Failures:* {failures}")
+
+        # refresh_wow
+        cpu_change = _col_value(row, columns, "cpu_change")
+        if cpu_change is not None:
+            parts.append(f"*Change:* {cpu_change}")
+
+        for col in ("cpu_seconds", "wasted_cpu_seconds", "curr_cpu_seconds"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*CPU:* {val}s")
+                break
+
+        for col in ("rows_read", "curr_rows_read"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                parts.append(f"*Read:* {val}")
+                break
+
+        refreshes = _col_value(row, columns, "refreshes")
+        if refreshes is not None:
+            parts.append(f"*Refreshes:* {refreshes}")
+
+    elif category == "schema_audit":
+        db = _col_value(row, columns, "database")
+        tbl = _col_value(row, columns, "table_name")
+        if db and tbl:
+            parts.append(f"`{db}.{tbl}`")
+        issue = _col_value(row, columns, "issue")
+        if issue is not None:
+            parts.append(f"*{issue}*")
+        for col in ("sorting_key", "row_count", "disk_size", "engine"):
+            val = _col_value(row, columns, col)
+            if val is not None:
+                label = col.replace("_", " ").title()
+                parts.append(f"*{label}:* {_truncate(val, 60)}")
+                if len(parts) >= 5:
+                    break
+
+    # Ownership, when an owners map was supplied, is what makes the row actionable.
+    owner = _col_value(row, columns, "owner")
+    if owner:
+        contact = _col_value(row, columns, "owner_contact")
+        parts.append(f"*Owner:* {owner}{f' ({contact})' if contact else ''}")
 
     # Always append user at the end (except cost_attribution which leads with it)
     if category != "cost_attribution":
