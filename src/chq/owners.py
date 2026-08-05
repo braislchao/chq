@@ -9,8 +9,8 @@ interpreted by whoever ran it.
 Map format (JSON or YAML)::
 
     owners:
-      "*.analytics_planned_time_*": {team: "Time Planning", contact: "#time-planning"}
-      "*mv_state_history_employees*": {team: "Contracts", contact: "#contracts"}
+      "*.analytics_orders_daily_*": {team: "Orders", contact: "#orders-eng"}
+      "*mv_state_history_users*": {team: "Accounts", contact: "#accounts-eng"}
     default: {team: "UNOWNED"}
 
 Patterns are shell globs matched against the value of the row's ``table`` or

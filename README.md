@@ -41,7 +41,7 @@ List everything available:
 
 ## Checks
 
-26 checks in 8 categories, driven by SQL against the query log (see
+27 checks in 8 categories, driven by SQL against the query log (see
 [Custom source table](#custom-source-table)), `system.part_log`, `system.parts`,
 and other system tables.
 
@@ -55,6 +55,7 @@ and other system tables.
 | anomalies | `new_expensive_patterns` | First seen this week, already expensive |
 | cost_attribution | `by_user` | Bytes read, compute hours, error rate per user |
 | cost_attribution | `by_table` | CPU and bytes read per table, the axis that maps to an owner |
+| cost_attribution | `select_pct_by_db_and_engine` | SELECT distribution by database and storage engine |
 | anti_patterns | `full_scans` | Read/result row ratio above threshold |
 | anti_patterns | `select_star_wide_tables` | SELECT * usage |
 | anti_patterns | `missing_partition_filter` | Too many parts scanned |
@@ -65,9 +66,14 @@ and other system tables.
 | cluster_health | `insert_duration_by_engine` | Insert latency histogram by storage engine |
 | cluster_health | `merge_pressure` | Merge duration, load, and pressure per table |
 | cluster_health | `partition_health` | Partition fragmentation, merge backlog, oversized parts |
+| materialized_views | `refresh_waste_summary` | One row: how much of this cluster's refresh work produced nothing |
 | materialized_views | `refresh_cost` | Refreshable MV cost by CPU, with read amplification |
 | materialized_views | `refresh_failures` | CPU and rows burnt by refreshes that wrote nothing |
 | materialized_views | `refresh_wow` | MVs whose cost jumped, and newly expensive views |
+| query_endpoints | `wow_usage` | Week-over-week call volume per Query API Endpoint |
+| query_endpoints | `latency` | p50/p95/p99 duration per Query API Endpoint |
+| query_endpoints | `data_scanned` | Average and total data scanned per endpoint call |
+| schema_audit | `missing_company_id_sorting_key` | Operational tables whose sorting key lacks a tenant column |
 
 ## Configuration
 
@@ -210,8 +216,8 @@ it, since that mapping lives wherever the schema is defined. Supply it with
 
 ```yaml
 owners:
-  "*.analytics_planned_time_*": {team: "Time Planning", contact: "#time-planning"}
-  "*mv_state_history_employees*": {team: "Contracts", contact: "#contracts"}
+  "*.analytics_orders_daily_*": {team: "Orders", contact: "#orders-eng"}
+  "*mv_state_history_users*": {team: "Accounts", contact: "#accounts-eng"}
 default: {team: "UNOWNED"}
 ```
 
