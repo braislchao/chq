@@ -10,112 +10,344 @@
   ],
   "checks": {
     "top_n/by_memory": {
-      "columns": ["primary_user", "executions", "peak_memory", "p95_memory", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "peak_memory",
+        "p95_memory",
+        "query_text"
+      ],
       "headline": "peak_memory"
     },
     "top_n/by_read_bytes": {
-      "columns": ["primary_user", "executions", "total_read", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "total_read",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "total_read"
     },
     "top_n/by_duration": {
-      "columns": ["primary_user", "executions", "p50_ms", "p95_ms", "max_ms", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "p50_ms",
+        "p95_ms",
+        "max_ms",
+        "query_text"
+      ],
       "headline": "p95_ms"
     },
     "top_n/by_weighted_cost": {
-      "columns": ["primary_user", "executions", "avg_read", "weighted_cost", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_read",
+        "weighted_cost",
+        "query_text"
+      ],
       "headline": "weighted_cost"
     },
     "anomalies/wow_duration_regressions": {
-      "columns": ["primary_user", "prev_p95_ms", "curr_p95_ms", "duration_change_pct", "prev_avg_read", "curr_avg_read", "bytes_change_pct", "query_text"],
+      "columns": [
+        "primary_user",
+        "prev_p95_ms",
+        "curr_p95_ms",
+        "duration_change_pct",
+        "prev_avg_read",
+        "curr_avg_read",
+        "bytes_change_pct",
+        "query_text"
+      ],
       "headline": "duration_change_pct"
     },
     "anomalies/new_expensive_patterns": {
-      "columns": ["primary_user", "executions", "avg_duration_ms", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_duration_ms",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "avg_duration_ms"
     },
     "cost_attribution/by_user": {
-      "columns": ["user", "total_queries", "total_read", "total_hours", "errors", "error_rate_pct"],
+      "columns": [
+        "user",
+        "total_queries",
+        "total_read",
+        "total_hours",
+        "errors",
+        "error_rate_pct"
+      ],
       "headline": "total_read"
     },
     "cost_attribution/by_table": {
-      "columns": ["table", "query_patterns", "executions", "cpu_seconds", "total_read", "rows_read", "p95_ms"],
+      "columns": [
+        "table",
+        "query_patterns",
+        "executions",
+        "cpu_seconds",
+        "total_read",
+        "rows_read",
+        "p95_ms"
+      ],
       "headline": "cpu_seconds"
     },
     "cost_attribution/select_pct_by_db_and_engine": {
-      "columns": ["database", "engine", "select_queries", "pct_of_db", "pct_of_total", "total_read", "avg_duration_s", "bar_chart"],
+      "columns": [
+        "database",
+        "engine",
+        "select_queries",
+        "pct_of_db",
+        "pct_of_total",
+        "total_read",
+        "avg_duration_s",
+        "bar_chart"
+      ],
       "headline": "total_read"
     },
     "anti_patterns/full_scans": {
-      "columns": ["primary_user", "executions", "avg_read_rows", "avg_result_rows", "scan_ratio", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_read_rows",
+        "avg_result_rows",
+        "scan_ratio",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "scan_ratio"
     },
     "anti_patterns/missing_partition_filter": {
-      "columns": ["primary_user", "executions", "avg_selected_parts", "avg_read_rows", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_selected_parts",
+        "avg_read_rows",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "avg_selected_parts"
     },
     "anti_patterns/repeated_identical": {
-      "columns": ["primary_user", "total_executions", "avg_per_hour", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "total_executions",
+        "avg_per_hour",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "avg_per_hour"
     },
     "anti_patterns/select_star_wide_tables": {
-      "columns": ["primary_user", "executions", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "avg_read"
     },
     "anti_patterns/small_insert_batches": {
-      "columns": ["primary_user", "executions", "avg_written_rows", "total_written_rows", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_written_rows",
+        "total_written_rows",
+        "query_text"
+      ],
       "headline": "avg_written_rows"
     },
     "anti_patterns/unbounded_results": {
-      "columns": ["primary_user", "executions", "avg_result_rows", "max_result_rows", "avg_read", "query_text"],
+      "columns": [
+        "primary_user",
+        "executions",
+        "avg_result_rows",
+        "max_result_rows",
+        "avg_read",
+        "query_text"
+      ],
       "headline": "avg_result_rows"
     },
     "cluster_health/insert_duration_by_engine": {
-      "columns": ["engine", "duration_bucket", "inserts", "pct", "avg_rows", "avg_query_s", "bar_chart"],
+      "columns": [
+        "engine",
+        "duration_bucket",
+        "inserts",
+        "pct",
+        "avg_rows",
+        "avg_query_s",
+        "bar_chart"
+      ],
       "headline": "inserts"
     },
     "cluster_health/insert_part_fragmentation": {
-      "columns": ["database", "table", "added_parts", "total_rows", "batch_size_class", "avg_interval_sec", "insert_frequency_class", "avg_rows_per_part", "p50_rows_per_part", "small_parts_pct"],
+      "columns": [
+        "database",
+        "table",
+        "added_parts",
+        "total_rows",
+        "batch_size_class",
+        "avg_interval_sec",
+        "insert_frequency_class",
+        "avg_rows_per_part",
+        "p50_rows_per_part",
+        "small_parts_pct"
+      ],
       "headline": "added_parts"
     },
     "cluster_health/merge_pressure": {
-      "columns": ["database", "table", "p90_merge_duration_s", "avg_merge_duration_s", "p90_merge_duration_human", "merge_duration_class", "total_merges", "merge_load_class", "merge_pressure_class", "total_parts_merged", "avg_parts_per_merge", "total_rows_merged", "avg_rows_per_merge", "total_merge_wall_time_h", "avg_merge_interval_sec", "merge_frequency_class", "avg_merge_duration_human", "first_merge_time", "last_merge_time"],
+      "columns": [
+        "database",
+        "table",
+        "p90_merge_duration_s",
+        "avg_merge_duration_s",
+        "p90_merge_duration_human",
+        "merge_duration_class",
+        "total_merges",
+        "merge_load_class",
+        "merge_pressure_class",
+        "total_parts_merged",
+        "avg_parts_per_merge",
+        "total_rows_merged",
+        "avg_rows_per_merge",
+        "total_merge_wall_time_h",
+        "avg_merge_interval_sec",
+        "merge_frequency_class",
+        "avg_merge_duration_human",
+        "first_merge_time",
+        "last_merge_time"
+      ],
       "headline": "total_merges"
     },
     "cluster_health/partition_health": {
-      "columns": ["database", "table", "partition", "partition_status", "total_rows_m", "size_gb", "active_parts", "avg_part_size_mb", "parts_per_gb", "active_merges", "node_ram_gb", "oversized_threshold_mb"],
+      "columns": [
+        "database",
+        "table",
+        "partition",
+        "partition_status",
+        "total_rows_m",
+        "size_gb",
+        "active_parts",
+        "avg_part_size_mb",
+        "parts_per_gb",
+        "active_merges",
+        "node_ram_gb",
+        "oversized_threshold_mb"
+      ],
       "headline": "active_parts"
     },
     "materialized_views/refresh_waste_summary": {
-      "columns": ["refreshes", "views", "useful_cpu_seconds", "wasted_cpu_seconds", "waste_pct", "failures", "failing_views", "rows_read_by_failures", "bytes_read_by_failures"],
+      "columns": [
+        "refreshes",
+        "views",
+        "useful_cpu_seconds",
+        "wasted_cpu_seconds",
+        "waste_pct",
+        "failures",
+        "failing_views",
+        "rows_read_by_failures",
+        "bytes_read_by_failures"
+      ],
       "headline": "waste_pct"
     },
     "materialized_views/refresh_cost": {
-      "columns": ["mv", "refreshes", "cpu_seconds", "rows_read", "bytes_read", "rows_written", "amplification", "avg_ms", "peak_memory"],
+      "columns": [
+        "mv",
+        "refreshes",
+        "cpu_seconds",
+        "rows_read",
+        "bytes_read",
+        "rows_written",
+        "amplification",
+        "avg_ms",
+        "peak_memory"
+      ],
       "headline": "amplification"
     },
     "materialized_views/refresh_failures": {
-      "columns": ["mv", "failures", "attempts", "exception_code", "exception", "wasted_cpu_seconds", "rows_read", "bytes_read", "peak_memory"],
+      "columns": [
+        "mv",
+        "failures",
+        "attempts",
+        "exception_code",
+        "exception",
+        "wasted_cpu_seconds",
+        "rows_read",
+        "bytes_read",
+        "peak_memory"
+      ],
       "headline": "wasted_cpu_seconds"
     },
     "materialized_views/refresh_wow": {
-      "columns": ["mv", "prev_cpu_seconds", "curr_cpu_seconds", "cpu_change", "prev_rows_read", "curr_rows_read", "refreshes"],
+      "columns": [
+        "mv",
+        "prev_cpu_seconds",
+        "curr_cpu_seconds",
+        "cpu_change",
+        "prev_rows_read",
+        "curr_rows_read",
+        "refreshes"
+      ],
       "headline": "cpu_change"
     },
     "query_endpoints/wow_usage": {
-      "columns": ["endpoint_id", "calls_this_week", "calls_last_week", "wow_change_pct", "query_text"],
+      "columns": [
+        "endpoint_id",
+        "calls_this_week",
+        "calls_last_week",
+        "wow_change_pct",
+        "query_text"
+      ],
       "headline": "calls_this_week"
     },
     "query_endpoints/latency": {
-      "columns": ["endpoint_id", "p50_ms", "p95_ms", "p99_ms", "executions", "query_text"],
+      "columns": [
+        "endpoint_id",
+        "p50_ms",
+        "p95_ms",
+        "p99_ms",
+        "executions",
+        "query_text"
+      ],
       "headline": "p95_ms"
     },
     "query_endpoints/data_scanned": {
-      "columns": ["endpoint_id", "executions", "avg_read_readable", "total_read_readable", "max_read_readable", "query_text"],
+      "columns": [
+        "endpoint_id",
+        "executions",
+        "avg_read_readable",
+        "total_read_readable",
+        "max_read_readable",
+        "query_text"
+      ],
       "headline": "total_read_readable"
     },
     "schema_audit/missing_company_id_sorting_key": {
-      "columns": ["database", "table_name", "engine", "sorting_key", "partition_key", "row_count", "disk_size", "issue"],
+      "columns": [
+        "database",
+        "table_name",
+        "engine",
+        "sorting_key",
+        "partition_key",
+        "row_count",
+        "disk_size",
+        "issue"
+      ],
       "headline": "issue"
+    },
+    "materialized_views/refresh_contributors": {
+      "columns": [
+        "source_table",
+        "views_scanning",
+        "combined_cpu_seconds",
+        "failed_refreshes",
+        "example_views"
+      ],
+      "headline": "views_scanning"
     }
   }
 }

@@ -253,6 +253,24 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
                     parts.append(f"*{label}:* {val}{suffix}")
             return " | ".join(parts)
 
+        # refresh_contributors is keyed on a shared source table, not a view.
+        src = _col_value(row, columns, "source_table")
+        if src:
+            parts.append(f"`{src}`")
+            for col, label in (
+                ("views_scanning", "Scanned by"),
+                ("combined_cpu_seconds", "Combined CPU of those views"),
+                ("failed_refreshes", "of which failed"),
+            ):
+                val = _col_value(row, columns, col)
+                if val is not None:
+                    suffix = " views" if col == "views_scanning" else ("s" if col.endswith("_seconds") else "")
+                    parts.append(f"*{label}:* {val}{suffix}")
+            owner = _col_value(row, columns, "owner")
+            if owner:
+                parts.append(f"*Table owner:* {owner}")
+            return " | ".join(parts)
+
         mv = _col_value(row, columns, "mv")
         if mv:
             parts.append(f"`{mv}`")
