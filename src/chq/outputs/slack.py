@@ -235,6 +235,24 @@ def _format_row(row: tuple, columns: list[str], category: str) -> str:
             parts.append(f"*Runs:* {executions}")
 
     elif category == "materialized_views":
+        # refresh_waste_summary is one row for the whole cluster, so it has no view
+        # name and leads with the share of refresh work that produced nothing.
+        waste_pct = _col_value(row, columns, "waste_pct")
+        if waste_pct is not None:
+            parts.append(f"*{waste_pct}% of refresh CPU produced nothing*")
+            for col, label in (
+                ("wasted_cpu_seconds", "Wasted"),
+                ("useful_cpu_seconds", "Useful"),
+                ("failures", "Failures"),
+                ("failing_views", "Failing views"),
+                ("rows_read_by_failures", "Read by failures"),
+            ):
+                val = _col_value(row, columns, col)
+                if val is not None:
+                    suffix = "s" if col.endswith("_seconds") else ""
+                    parts.append(f"*{label}:* {val}{suffix}")
+            return " | ".join(parts)
+
         mv = _col_value(row, columns, "mv")
         if mv:
             parts.append(f"`{mv}`")

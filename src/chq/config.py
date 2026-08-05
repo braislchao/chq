@@ -150,6 +150,7 @@ CHECKS: dict[tuple[str, str], str] = {
     ("cluster_health", "insert_duration_by_engine"): "Insert latency histogram bucketed by storage engine",
     ("cluster_health", "merge_pressure"): "Merge duration, load, and pressure classification per table",
     ("cluster_health", "partition_health"): "Partition-level fragmentation, merge backlog, and oversized parts",
+    ("materialized_views", "refresh_waste_summary"): "One row: how much of this cluster's refresh work produced nothing",
     ("materialized_views", "refresh_cost"): "Refreshable MV cost ranked by CPU, with read amplification",
     ("materialized_views", "refresh_failures"): "CPU and rows burnt by refreshes that failed and wrote nothing",
     ("materialized_views", "refresh_wow"): "Refreshable MVs whose cost grew sharply, and newly expensive views",

@@ -85,6 +85,10 @@
       "columns": ["database", "table", "partition", "partition_status", "total_rows_m", "size_gb", "active_parts", "avg_part_size_mb", "parts_per_gb", "active_merges", "node_ram_gb", "oversized_threshold_mb"],
       "headline": "active_parts"
     },
+    "materialized_views/refresh_waste_summary": {
+      "columns": ["refreshes", "views", "useful_cpu_seconds", "wasted_cpu_seconds", "waste_pct", "failures", "failing_views", "rows_read_by_failures", "bytes_read_by_failures"],
+      "headline": "waste_pct"
+    },
     "materialized_views/refresh_cost": {
       "columns": ["mv", "refreshes", "cpu_seconds", "rows_read", "bytes_read", "rows_written", "amplification", "avg_ms", "peak_memory"],
       "headline": "amplification"
