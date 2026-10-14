@@ -95,6 +95,18 @@ class TestAnnotate:
         owners = OwnersMap({"mydb.hot*": {"team": "Team Hot"}})
         assert annotate([qr], owners)[0].rows[0][-2] == "Team Hot"
 
+    def test_qualifies_cluster_health_table_with_database(self):
+        """cluster_health emits database and table separately; db-scoped rules must still match."""
+        qr = QueryResult(
+            category="cluster_health",
+            name="merge_pressure",
+            columns=["database", "table", "merges"],
+            rows=[("mydb", "hot_table", 3), ("system", "query_log", 9)],
+        )
+        owners = OwnersMap({"mydb.*": {"team": "Team Hot"}, "system.*": {"team": "Platform"}})
+        out = annotate([qr], owners)[0]
+        assert [r[-2] for r in out.rows] == ["Team Hot", "Platform"]
+
     def test_leaves_results_without_a_subject_untouched(self):
         qr = QueryResult(category="top_n", name="by_memory", columns=["primary_user", "peak_memory"], rows=[("bob", "1 GiB")])
         out = annotate([qr], self._owners())[0]
