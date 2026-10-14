@@ -91,9 +91,12 @@ def annotate(results: list[QueryResult], owners: OwnersMap) -> list[QueryResult]
             continue
 
         idx = qr.columns.index(subject_col)
-        # schema_audit splits the name across database and table_name, so the
-        # pattern needs the qualified name to match the same way as elsewhere.
-        db_idx = qr.columns.index("database") if subject_col == "table_name" and "database" in qr.columns else None
+        # schema_audit and cluster_health split the name across database and
+        # table/table_name, so the pattern needs the qualified name to match the
+        # same way as elsewhere. Without it a database-scoped rule such as
+        # "mydb.*" never matches, and system tables cannot be told apart.
+        qualify = subject_col in ("table", "table_name") and "database" in qr.columns
+        db_idx = qr.columns.index("database") if qualify else None
 
         rows = []
         for row in qr.rows:
