@@ -16,7 +16,7 @@ AS SELECT * FROM system.query_log WHERE 1 = 0\
 _CREATE_MV = """\
 CREATE MATERIALIZED VIEW IF NOT EXISTS {database}.chq_query_log_mv
 TO {database}.chq_query_log
-AS SELECT * FROM system.query_log\
+AS SELECT * EXCEPT (transaction_id) FROM system.query_log\
 """
 
 
